@@ -11,7 +11,9 @@ entry here before it lands.
   WebAPK registers a share target; Brave/Firefox/Samsung add a shortcut that never appears
   in the share sheet (the first device install was from Brave, and regift was not offered).
   The manifest also carries 192/512 PNG icons (any + maskable), which Chrome documents for
-  WebAPK minting, and the share target declares its enctype.
+  WebAPK minting, and the share target declares its enctype. A **Start over** button
+  purges a try in progress in one tap, and the words for a link from Reddit's share
+  button now say the one habit that removes the step: share from Chrome's ⋮ menu instead.
 - 2026-08-30 **no more select-all:** regift reads a post by itself (JSONP, with your
   browser's own Reddit cookies) — share the post in, get the video out, no paste. When
   that is refused (signed out, third-party cookies blocked), the assisted step now leads

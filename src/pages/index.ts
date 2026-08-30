@@ -98,7 +98,16 @@ function content(): HTMLElement {
   const go = el('button', 'btn btn-primary', 'Get the video');
   go.type = 'button';
   go.setAttribute('data-testid', 'go');
-  s1.body.append(field, quality, go);
+  // One tap purges everything — a half-done fetch, the loaded core, a blob preview,
+  // and the share-target query — by reloading the page at its clean address. Honest
+  // and complete, which an in-page "clear" would not be mid-mux.
+  const startOver = el('button', 'btn btn-secondary', 'Start over');
+  startOver.type = 'button';
+  startOver.setAttribute('data-testid', 'reset');
+  startOver.addEventListener('click', () => location.replace(location.pathname));
+  const buttons = el('div', 'actions');
+  buttons.append(go, startOver);
+  s1.body.append(field, quality, buttons);
   s1.setState('active');
   const maxHeight = (): number | undefined => (qualitySelect.value ? Number(qualitySelect.value) : undefined);
 
@@ -275,9 +284,11 @@ function content(): HTMLElement {
         hint.setAttribute('data-testid', 'needs-browser');
         hint.append(
           document.createTextNode(
-            "That is a share link, which only a browser can follow. Open it, then share the post from your browser's own menu (not the share button on the page) back to regift.",
+            "That is a link from Reddit's share button, which only a browser can follow. Open it, then share the post to regift from Chrome's own menu (⋮ → Share) — that sends the real post address and regift goes straight through.",
           ),
         );
+        const next = el('p', undefined, "Next time: on the post, use Chrome's ⋮ → Share instead of the share button on the page, and this step disappears.");
+        hint.append(next);
         s2.body.append(hint, openLink(err.url, 'Open the post'));
         return;
       }
