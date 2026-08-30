@@ -1,0 +1,28 @@
+{
+  "name": "regift",
+  "short_name": "regift",
+  "description": "Share a post in, get the video out. Extracts on your device and hands the file to the next app.",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#ab5330",
+  "background_color": "#f3efe7",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "index.html",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

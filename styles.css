@@ -1,0 +1,401 @@
+/*
+ * regift — brand tokens (the Croft tectonic palette, as croft-pwa ships it).
+ *
+ * THIS IS THE ONLY FILE ALLOWED TO CONTAIN RAW HEX. Components (styles.css) and
+ * app code reference these semantic custom properties, never literal colours —
+ * enforced by tests/unit/brand-nohex.test.ts. New colours are added HERE with a
+ * recorded contrast ratio, never invented inline (docs/DESIGN.md).
+ *
+ * Palette: a PWA-UI-tuned variant of the Croft "tectonic" board
+ * (discovery/beta/socialization/visual-identity-and-the-progressive-depth-website.md):
+ *   Deep Schist #2F3539 · Light Granite #A2A9AB · Ruddy Orange #B75C34
+ *   Dark Moss #3D6546 · Iron Ore Black #1C1E20 · Oatmeal Canvas #E9E1D6
+ * Values below are re-tuned so every text/UI pair clears WCAG AA (≥4.5:1 body,
+ * ≥3:1 large/UI). Ratios are recorded here and asserted by
+ * tests/unit/brand-tokens.test.ts — the numbers are load-bearing, not decoration.
+ *
+ * Type: Lora (display) + Inter (body/UI), self-hostable; system fallbacks below.
+ */
+
+:root {
+  /* --- Light theme (default): "warm stone in the sun", not blinding white --- */
+  --bg: #f3efe7;          /* lightened Oatmeal — page background */
+  --surface: #e7dfd2;     /* Oatmeal Canvas — cards, raised surfaces */
+  --ink: #1c1e20;         /* Iron Ore Black — primary text     (bg 14.58:1) */
+  --ink-muted: #585b5c;   /* granite grey — captions, mono facts (bg 5.97:1) */
+  --accent: #ab5330;      /* Ruddy Orange (tuned) — primary action fill */
+  --accent-ink: #fbf7f0;  /* text/icon on --accent            (4.90:1) */
+  --active: #3d6546;      /* Dark Moss — active/success fill */
+  --active-ink: #fbf7f0;  /* text/icon on --active            (6.25:1) */
+  --link: #9b4423;        /* ruddy, darkened for body-text links (bg 5.64:1) */
+  --danger: #9b3016;      /* warning + destructive fill (rust, not a 2nd accent) */
+  --danger-ink: #fbf7f0;  /* text/icon on --danger            (6.95:1) */
+  --border: #b9ae9c;      /* hairline dividers — decorative, non-text */
+  --focus: #3d6546;       /* focus ring — moss                (bg 5.82:1) */
+  --code-bg: #ece3d5;     /* inline/code block background */
+
+  /* --- Type roles --- */
+  --font-display: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+
+  /* Type scale (fixed ramp — new sizes join the ramp, never ad-hoc) */
+  --t-stamp: 0.75rem;
+  --t-caption: 0.8125rem;
+  --t-body: 1rem;
+  --t-lead: 1.125rem;
+  --t-h3: 1.25rem;
+  --t-h2: 1.5rem;
+  --t-h1: 2rem;
+  --t-wordmark: 1.375rem;
+
+  /* Spacing (4px base) + radii + stroke */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+  --s-7: 3rem;
+  --r-s: 4px;
+  --r-m: 8px;
+  --r-l: 14px;
+  --r-pill: 999px;
+  --stroke: 1.5px;
+
+  /* PWA manifest theme mirrors --accent; kept in sync by src/theme.ts */
+  --theme-color: #ab5330;
+}
+
+[data-theme='dark'] {
+  /* "The same stone wall at night" — same roles, re-tuned for dark contrast. */
+  --bg: #22272a;          /* deep granite */
+  --surface: #2f3539;     /* Deep Schist */
+  --ink: #ece6db;         /* warm oatmeal ink                 (bg 12.15:1) */
+  --ink-muted: #9ba1a3;   /* Light Granite                    (bg 5.76:1) */
+  --accent: #c86a40;      /* Ruddy Orange, lightened for dark */
+  --accent-ink: #17191b;  /* dark ink on --accent             (4.69:1) */
+  --active: #5e9873;      /* Dark Moss, lightened */
+  --active-ink: #17191b;  /* dark ink on --active             (5.22:1) */
+  --link: #e0895f;        /* ruddy, lightened for dark links  (bg 5.69:1) */
+  --danger: #d65a3c;      /* rust, lightened for dark */
+  --danger-ink: #17191b;  /* dark ink on --danger             (4.52:1) */
+  --border: #454b4e;      /* hairline dividers — decorative */
+  --focus: #e0895f;       /* focus ring — ruddy               (bg 5.69:1) */
+  --code-bg: #2b3135;
+
+  --theme-color: #22272a;
+}
+
+/*
+ * regift — components. TOKEN-ONLY: no raw hex lives here (enforced by
+ * tests/unit/brand-nohex.test.ts). Every colour is a var() from tokens.css.
+ * Mobile-first, single column; tabs move to a bottom bar on phones.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  margin: 0 0 var(--s-3);
+}
+h1 {
+  font-size: var(--t-h1);
+}
+h2 {
+  font-size: var(--t-h2);
+}
+h3 {
+  font-size: var(--t-h3);
+}
+p {
+  margin: 0 0 var(--s-4);
+}
+a {
+  color: var(--link);
+  text-underline-offset: 2px;
+}
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: var(--r-s);
+}
+
+/* Machine facts render in mono muted — "if software produced the value, it's mono". */
+.mono {
+  font-family: var(--font-mono);
+  color: var(--ink-muted);
+  font-size: var(--t-stamp);
+  overflow-wrap: anywhere;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-s);
+}
+
+/* --- App shell --- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: var(--stroke) solid var(--border);
+  background: var(--surface);
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-size: var(--t-wordmark);
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  margin-right: auto;
+}
+.topbar-action {
+  background: none;
+  border: var(--stroke) solid var(--border);
+  color: var(--ink);
+  border-radius: var(--r-pill);
+  padding: var(--s-1) var(--s-3);
+  min-height: 44px;
+  font: inherit;
+  cursor: pointer;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--s-5) var(--s-4) var(--s-7);
+}
+
+.panel {
+  background: var(--surface);
+  border: var(--stroke) solid var(--border);
+  border-radius: var(--r-l);
+  padding: var(--s-5);
+  margin-bottom: var(--s-5);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  border-bottom: var(--stroke) solid var(--border);
+  overflow-x: auto;
+}
+.tab {
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-pill);
+  color: var(--ink-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.tab[aria-current='page'] {
+  background: var(--active);
+  color: var(--active-ink);
+}
+
+/* --- Controls --- */
+.btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--r-m);
+  padding: var(--s-2) var(--s-4);
+  min-height: 44px;
+  border: var(--stroke) solid transparent;
+}
+.btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.btn-secondary {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--ink);
+}
+.btn-danger {
+  background: var(--danger);
+  color: var(--danger-ink);
+}
+
+.field {
+  display: block;
+  margin-bottom: var(--s-4);
+}
+.field-label {
+  display: block;
+  font-size: var(--t-caption);
+  color: var(--ink-muted);
+  margin-bottom: var(--s-1);
+}
+.field input,
+.field textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: var(--stroke) solid var(--border);
+  border-radius: var(--r-m);
+}
+.field textarea {
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  min-height: 7rem;
+  resize: vertical;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.actions .btn {
+  flex: 1 1 10rem;
+}
+
+/* --- The regift flow --- */
+.step {
+  border-left: 3px solid var(--border);
+  padding-left: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+.step[data-state='active'] {
+  border-left-color: var(--accent);
+}
+.step[data-state='done'] {
+  border-left-color: var(--active);
+}
+.step h2 {
+  font-size: var(--t-h3);
+  margin-bottom: var(--s-2);
+}
+.status {
+  margin: var(--s-3) 0 0;
+  color: var(--ink-muted);
+}
+.status[data-tone='error'] {
+  color: var(--danger);
+}
+progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+}
+.credit {
+  font-size: var(--t-caption);
+  color: var(--ink-muted);
+}
+.preview {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  background: var(--code-bg);
+  border-radius: var(--r-m);
+  margin-bottom: var(--s-3);
+}
+.hint {
+  border: var(--stroke) dashed var(--border);
+  border-radius: var(--r-l);
+  padding: var(--s-4);
+  color: var(--ink-muted);
+  font-size: var(--t-caption);
+}
+.hint ol {
+  margin: var(--s-2) 0 0;
+  padding-left: var(--s-5);
+}
+
+/* --- Footer + update toast --- */
+.build-stamp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-top: var(--stroke) solid var(--border);
+}
+.croft-attr {
+  font-family: var(--font-display);
+  font-size: var(--t-caption);
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.update-toast {
+  position: fixed;
+  left: 50%;
+  bottom: var(--s-4);
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  max-width: calc(100vw - var(--s-5));
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface);
+  color: var(--ink);
+  border: var(--stroke) solid var(--border);
+  border-radius: var(--r-l);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+.update-toast .btn {
+  min-height: 36px;
+  padding: var(--s-1) var(--s-3);
+}
+
+@media (max-width: 40rem) {
+  main {
+    padding: var(--s-4) var(--s-3) var(--s-7);
+  }
+  .tabs {
+    position: sticky;
+    bottom: 0;
+    border-top: var(--stroke) solid var(--border);
+    border-bottom: none;
+    background: var(--surface);
+    justify-content: space-around;
+  }
+  .update-toast {
+    bottom: calc(var(--s-7) + var(--s-3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
