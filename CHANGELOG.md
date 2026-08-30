@@ -15,7 +15,9 @@ entry here before it lands.
 - 2026-08-30 **Reddit pictures:** an image post or a gallery comes out as its original
   files from i.redd.it, in gallery order — *if* Reddit's image host lets a page read it,
   which was not confirmed when this shipped; if it refuses, regift says so and that
-  pictures from Reddit need the app. Video is unchanged.
+  pictures from Reddit need the app. Video is unchanged. *Confirmed same day, on the
+  Pixel and from a second network: i.redd.it refuses a page (CORS), so the words are
+  what ships until the app.*
 - 2026-08-30 **three more sources:** share a **Bluesky** post (video or images — the
   original files, straight from the PDS), a **Mastodon** status (its attachments), or a
   **Tumblr** post (photos, inline images and Tumblr-hosted video) into regift and get the

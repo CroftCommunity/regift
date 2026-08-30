@@ -55,6 +55,9 @@ before assuming they still hold):
   are `ACAO *`. A `video` post may be a YouTube embed — refused by name.
 - **Pixelfed:** status endpoints `302 → /login` without a session on gram.social and
   pixelfed.social; refused with the reason.
+- `i.redd.it` (pictures) refuses a cross-origin page fetch — measured on-device AND from a
+  second network on a real image URL, 2026-08-30. Reddit pictures are parsed but need the
+  native courier; the page says so in words.
 - A `/s/` share link 307s; appending `.json` to it lands on the subreddit root, not the post.
 - Reddit's mobile web share button sends `navigator.share({ url })` with only the `/s/` link.
 
