@@ -57,7 +57,7 @@ Phases, each leaving the gate green:
    mobile-fit (element geometry), subpath, a11y both themes incl. the assisted state.
 4. **Ship.** Create `CroftCommunity/regift`, Pages from `gh-pages`, PR, land.
 5. **Device (owed).** Install on the Pixel from Pages; share a post from the mobile web;
-   Photos receives a clip with sound. Then the large-input measurement (TODO §2).
+   Photos receives a clip with sound. Then the large-input measurement (TODO §2). [device: android=pixel]
 
 ## Reasoning
 
