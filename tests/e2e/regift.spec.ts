@@ -161,13 +161,32 @@ test('a /s/ share link is handed to the browser with the reason', async ({ page 
   await expect(page.getByRole('link', { name: 'Open the post' })).toHaveAttribute('href', 'https://www.reddit.com/r/GuysBeingDudes/s/NqVUzmSB0S');
 });
 
-test('a post with no video says so', async ({ page }) => {
+test('a text post says it has no media', async ({ page }) => {
   await routeReddit(page, 'refuse');
-  await page.goto('/index.html?url=' + encodeURIComponent('https://www.reddit.com/r/pics/comments/1photo1/a_photo/'));
+  await page.goto('/index.html?url=' + encodeURIComponent('https://www.reddit.com/r/AskReddit/comments/1txt001/what_is_a_good_question/'));
   await page.getByTestId('go').click();
-  await page.getByTestId('post-json').fill(fixture('reddit/post-image.json').toString('utf8'));
+  await page.getByTestId('post-json').fill(fixture('reddit/post-text.json').toString('utf8'));
   await page.getByTestId('use-json').click();
-  await expect(page.getByRole('status').filter({ hasText: /no video/ })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: /no video or images/ })).toBeVisible();
+});
+
+test('a gallery becomes three image files from i.redd.it, in order', async ({ page }) => {
+  const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+  const reads: string[] = [];
+  await page.route('https://i.redd.it/**', (route) => {
+    reads.push(route.request().url());
+    return route.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*' }, contentType: 'image/png', body: PNG });
+  });
+  await page.goto('/index.html?text=' + encodeURIComponent(fixture('reddit/post-gallery.json').toString('utf8')));
+  await expect(page.getByTestId('save-3')).toBeVisible();
+  expect(reads).toEqual(['https://i.redd.it/aaa111.jpg', 'https://i.redd.it/bbb222.png', 'https://i.redd.it/ccc333.gif']);
+  await expect(page.getByTestId('credit')).toContainText('Three views — u/galleryposter on r/pics');
+});
+
+test('when i.redd.it refuses the page, the words say Reddit pictures need the app', async ({ page }) => {
+  await page.route('https://i.redd.it/**', (route) => route.abort('failed'));
+  await page.goto('/index.html?text=' + encodeURIComponent(fixture('reddit/post-image.json').toString('utf8')));
+  await expect(page.getByTestId('media-error')).toContainText('Pictures from Reddit need the regift app');
 });
 
 test('an empty link is refused before anything runs', async ({ page }) => {

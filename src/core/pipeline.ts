@@ -10,7 +10,7 @@ import { classifyLink, NeedsSignInError } from './sources';
 import { readBluesky } from './readers/bluesky';
 import { readMastodon } from './readers/mastodon';
 import { readTumblr } from './readers/tumblr';
-import type { Post } from './post';
+import { extensionFor, type MediaItem, type Post } from './post';
 
 /** The link is a redirect only a browser navigation can follow. */
 export class NeedsBrowserError extends Error {
@@ -26,7 +26,7 @@ export async function readPost(url: string, courier: Courier): Promise<RedditPos
     case 'share':
       throw new NeedsBrowserError(link.url);
     case 'video':
-      return { title: null, author: null, subreddit: null, permalink: null, video: { id: link.videoId, hasAudio: true, duration: 0, width: 0, height: 0 } };
+      return { title: null, author: null, subreddit: null, permalink: null, video: { id: link.videoId, hasAudio: true, duration: 0, width: 0, height: 0 }, images: [] };
     case 'post': {
       const jsonUrl = postJsonUrl(link.canonical);
       if (!courier.canRead(jsonUrl)) throw new CourierBlockedError(jsonUrl);
@@ -37,6 +37,17 @@ export async function readPost(url: string, courier: Courier): Promise<RedditPos
   }
 }
 
+function redditImageItems(post: RedditPost): MediaItem[] {
+  const id = post.permalink ? /\/comments\/([^/]+)/.exec(post.permalink)?.[1] : undefined;
+  const many = post.images.length > 1;
+  return post.images.map((img, i) => ({
+    kind: 'file',
+    url: img.url,
+    mime: img.mime,
+    filename: `regift-reddit-${id ?? 'post'}${many ? `-${i + 1}` : ''}.${extensionFor(img.mime)}`,
+  }));
+}
+
 /** A Reddit post in the shared Post shape. */
 export function fromReddit(post: RedditPost): Post {
   return {
@@ -45,7 +56,7 @@ export function fromReddit(post: RedditPost): Post {
     author: post.author,
     where: post.subreddit ? `r/${post.subreddit}` : null,
     permalink: post.permalink,
-    items: post.video ? [{ kind: 'reddit-video', videoId: post.video.id }] : [],
+    items: post.video ? [{ kind: 'reddit-video', videoId: post.video.id }] : redditImageItems(post),
   };
 }
 

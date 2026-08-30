@@ -12,12 +12,19 @@ export interface RedditVideo {
   readonly height: number;
 }
 
+export interface RedditImage {
+  readonly url: string;
+  readonly mime: string;
+}
+
 export interface RedditPost {
   readonly title: string | null;
   readonly author: string | null;
   readonly subreddit: string | null;
   readonly permalink: string | null;
   readonly video: RedditVideo | null;
+  /** A single image post's picture, or a gallery's pictures in display order. */
+  readonly images: readonly RedditImage[];
 }
 
 export class PostParseError extends Error {
@@ -53,6 +60,32 @@ function redditVideo(data: Obj): RedditVideo | null {
   return null;
 }
 
+const IMAGE_HOST = /^https?:\/\/i\.redd\.it\/[^?]+\.(jpe?g|png|gif|webp)$/i;
+const MIME_BY_EXT: Record<string, string> = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp' };
+const EXT_BY_MIME: Record<string, string> = { 'image/jpg': 'jpg', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp' };
+
+/** Images: `url` for a single-image post; gallery_data + media_metadata for a gallery. */
+function redditImages(data: Obj): RedditImage[] {
+  const gallery = data['gallery_data'];
+  const meta = data['media_metadata'];
+  if (isObj(gallery) && Array.isArray(gallery['items']) && isObj(meta)) {
+    return (gallery['items'] as unknown[]).flatMap((item): RedditImage[] => {
+      const id = isObj(item) ? str(item['media_id']) : null;
+      const m = id ? meta[id] : undefined;
+      if (!id || !isObj(m) || m['status'] !== 'valid') return [];
+      const declared = str(m['m']) ?? '';
+      const ext = EXT_BY_MIME[declared];
+      if (!ext) return [];
+      // The original file lives at i.redd.it/<id>.<ext>; `s.u` is a signed preview.
+      return [{ url: `https://i.redd.it/${id}.${ext}`, mime: MIME_BY_EXT[ext] ?? declared }];
+    });
+  }
+  const url = str(data['url']);
+  const m = url ? IMAGE_HOST.exec(url) : null;
+  if (url && m?.[1]) return [{ url, mime: MIME_BY_EXT[m[1].toLowerCase()] ?? 'image/jpeg' }];
+  return [];
+}
+
 function firstPostData(json: unknown): Obj {
   const listing: unknown = Array.isArray(json) ? (json as unknown[])[0] : json;
   if (!isObj(listing) || listing['kind'] !== 'Listing') throw new PostParseError('no Listing');
@@ -75,5 +108,6 @@ export function parsePostListing(json: unknown): RedditPost {
     subreddit: str(source['subreddit']),
     permalink: permalink ? `https://www.reddit.com${permalink}` : null,
     video: redditVideo(source),
+    images: redditVideo(source) ? [] : redditImages(source),
   };
 }
