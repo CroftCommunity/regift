@@ -7,7 +7,8 @@ import { mountShell, el } from '../nav';
 import { registerServiceWorker } from '../sw-register';
 import { log } from '../log';
 import { sharedUrl, sharedPostJson } from '../core/share-in';
-import { creditLine } from '../core/credit';
+import { creditLine, embeddedCredit } from '../core/credit';
+import { tagImage } from '../core/tag';
 import { readAny, regiftVideo, fromReddit, NeedsBrowserError, type Stage } from '../core/pipeline';
 import { CourierBlockedError } from '../core/ports';
 import { NeedsSignInError } from '../core/sources';
@@ -136,13 +137,16 @@ function content(): HTMLElement {
     s3.setState('idle');
   };
 
-  async function fileFor(item: MediaItem, line: HTMLElement, bar: HTMLProgressElement): Promise<File> {
+  async function fileFor(post: Post, item: MediaItem, line: HTMLElement, bar: HTMLProgressElement): Promise<File> {
+    const credit = embeddedCredit(post);
+    const tags = { title: post.title ?? credit.description, artist: credit.author, comment: credit.description };
     if (item.kind === 'reddit-video') {
       const cap = maxHeight();
       const out = await regiftVideo({
         videoId: item.videoId,
         courier: webCourier,
         muxer,
+        tags,
         ...(cap === undefined ? {} : { maxHeight: cap }),
         onStage: (stage) => {
           line.textContent = STAGE_WORDS[stage];
@@ -155,9 +159,20 @@ function content(): HTMLElement {
       return new File([out.bytes as BlobPart], out.filename, { type: 'video/mp4' });
     }
     line.textContent = `Fetching ${item.filename}…`;
-    const bytes = await webCourier.bytes(item.url, (loaded, total) => {
+    let bytes = await webCourier.bytes(item.url, (loaded, total) => {
       bar.value = total ? loaded / total : 0;
     });
+    // The credit rides inside the file. Cosmetic: a tagging failure must not
+    // cost the file itself, so it degrades to the untagged bytes with a warning.
+    try {
+      if (item.mime.startsWith('image/')) bytes = tagImage(bytes, item.mime, credit);
+      else if (item.mime === 'video/mp4') {
+        line.textContent = 'Writing the credit into the file…';
+        bytes = await muxer.tag(bytes, tags);
+      }
+    } catch (err) {
+      log.warn('credit embedding failed; keeping the untagged file', err);
+    }
     return new File([bytes as BlobPart], item.filename, { type: item.mime });
   }
 
@@ -195,7 +210,7 @@ function content(): HTMLElement {
     try {
       for (const [i, item] of post.items.entries()) {
         if (post.items.length > 1) line.textContent = `${i + 1} of ${post.items.length}…`;
-        files.push(await fileFor(item, line, bar));
+        files.push(await fileFor(post, item, line, bar));
       }
     } catch (err) {
       log.error('regift failed', err);

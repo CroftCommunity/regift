@@ -91,6 +91,8 @@ test('a direct video link arriving via the share target becomes a muxed mp4 with
   expect(top[0]).toBe('ftyp');
   expect(top).toContain('moov');
   expect(handlers.sort()).toEqual(['soun', 'vide']);
+  // The credit rides in the container tags (©cmt via ffmpeg -metadata).
+  expect(out.toString('latin1')).toContain('via Reddit');
   await expect(page.getByTestId('preview')).toBeVisible();
 });
 

@@ -15,12 +15,21 @@ export interface Courier {
   bytes(url: string, onProgress?: (loaded: number, total: number | null) => void): Promise<Uint8Array>;
 }
 
+/** Container-level tags a muxer writes into an mp4 (no re-encode). */
+export interface VideoTags {
+  readonly title: string;
+  readonly artist: string;
+  readonly comment: string;
+}
+
 /** Combines a video-only track and an audio-only track into one playable file. */
 export interface Muxer {
   mux(
-    input: { readonly video: Uint8Array; readonly audio: Uint8Array },
+    input: { readonly video: Uint8Array; readonly audio: Uint8Array; readonly tags?: VideoTags },
     onProgress?: (ratio: number) => void,
   ): Promise<Uint8Array>;
+  /** Rewrite the container with tags — a stream copy, not a transcode. */
+  tag(video: Uint8Array, tags: VideoTags): Promise<Uint8Array>;
 }
 
 /** Hands a finished file to the next app (the OS share sheet, or a download). */

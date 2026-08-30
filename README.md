@@ -44,6 +44,9 @@ Reddit post ──share──► regift ──► read post ──► fetch trac
   CORS-open (Bluesky's original blobs come from the PDS; Tumblr's legacy JSON read is loaded
   as a script). Galleries come out as several files. **Pixelfed** is recognised but refused
   with the reason — its instances show posts only to signed-in members (`TODO.md` §4).
+- **The credit rides inside the file**: EXIF (JPEG, WebP), iTXt (PNG), a comment block
+  (GIF), MP4 container tags — Google Photos shows it in the info panel. Platforms strip
+  metadata on upload, so the visible credit on a repost still comes from **Copy credit**.
 - **Share out.** `navigator.share({ files })` on Android Chrome opens the system share
   sheet (several files at once for galleries); elsewhere, Save downloads each file.
 

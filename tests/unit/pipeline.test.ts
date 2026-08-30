@@ -30,6 +30,7 @@ const recordingMuxer = (calls: unknown[]): Muxer => ({
     calls.push(input);
     return Promise.resolve(bytesOf('muxed'));
   },
+  tag: (video) => Promise.resolve(video),
 });
 
 describe('readPost', () => {
@@ -98,5 +99,14 @@ describe('regiftVideo', () => {
     const out = await regiftVideo({ videoId: 'v1', courier: silentCourier, muxer: recordingMuxer(muxCalls) });
     expect(muxCalls).toEqual([]);
     expect(out.bytes).toEqual(bytesOf('CMAF_720.mp4'));
+  });
+});
+
+describe('regiftVideo: tags reach the muxer', () => {
+  it('passes the container tags through untouched', async () => {
+    const muxCalls: unknown[] = [];
+    const tags = { title: 'Dad jokes', artist: 'u/someredditor', comment: 'via u/someredditor on r/GuysBeingDudes — https://r/x' };
+    await regiftVideo({ videoId: 'blke7z3ttolh1', courier: fakeCourier({ readsReddit: false }), muxer: recordingMuxer(muxCalls), tags });
+    expect(muxCalls[0]).toMatchObject({ tags });
   });
 });
