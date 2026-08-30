@@ -2,9 +2,8 @@
 
 date: 2026-08-30
 identity: chasemp (`chase@owasp.org`, `github-personal`), repo `CroftCommunity/regift`
-Status: **built and gated (2026-08-30)** — the slice is on `claude/first-slice`, gate green
-locally (unit 61, e2e 28 incl. the real ffmpeg.wasm mux). Device run on the Pixel owed
-`[device: android]` (TODO §2).
+Status: **landed and device-verified (2026-08-30)** — share from Chrome's menu → regift → video,
+on the Pixel as a Chrome WebAPK. Open: the large-input measurement (TODO §2).
 
 ## Problem Statement
 
@@ -57,7 +56,7 @@ Phases, each leaving the gate green:
    mobile-fit (element geometry), subpath, a11y both themes incl. the assisted state.
 4. **Ship.** Create `CroftCommunity/regift`, Pages from `gh-pages`, PR, land.
 5. **Device (owed).** Install on the Pixel from Pages; share a post from the mobile web;
-   Photos receives a clip with sound. Then the large-input measurement (TODO §2). [device: android=pixel]
+   Photos receives a clip with sound. Then the large-input measurement (TODO §2). [device done 2026-08-30: Pixel, Chrome WebAPK; a Brave install never appeared in the share sheet; sharing the post from Chrome's ⋮ menu to regift produced the video — owner: "worked well". Large-input measurement still open (TODO §2)]
 
 ## Reasoning
 
