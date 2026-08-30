@@ -36,7 +36,16 @@ The CMAF tracks are fragmented MP4; joining two into one is a container rewrite 
 hundred lines of TypeScript could do, replacing the 31 MB ffmpeg core for the common case.
 Measure before building: the SW caches the core after first use, so the cost is one download.
 
-## 4. Facebook and other sources
+## 4. Pixelfed (gram.social)
+
+Classified and refused with the reason: on gram.social and pixelfed.social alike the
+status endpoints answer `302 → /login` without a session (2026-08-30), and the
+ActivityPub outbox is empty. One untested door: the post URL with
+`Accept: application/activity+json` (a non-safelisted header, so it needs a preflight the
+instance may or may not answer). Needs a full post link to probe. If that is closed too,
+Pixelfed is the same shape as Reddit-without-cookies — a native-courier source.
+
+## 5. Facebook and other sources
 
 Out of scope until the Reddit loop has a courier that needs no assistance. yt-dlp's
 extractors are the living reference; definitions should be data, not code.

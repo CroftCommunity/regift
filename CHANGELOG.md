@@ -7,6 +7,13 @@ entry here before it lands.
 
 ## 2026-08
 
+- 2026-08-30 **three more sources:** share a **Bluesky** post (video or images — the
+  original files, straight from the PDS), a **Mastodon** status (its attachments), or a
+  **Tumblr** post (photos, inline images and Tumblr-hosted video) into regift and get the
+  files out; several files share together. A Tumblr post that embeds YouTube is refused by
+  name. **Pixelfed** links are recognised and refused with the reason (the instance shows
+  posts only to signed-in members). The credit line speaks each platform's dialect
+  (`@handle on Bluesky`, `@user@instance`). (plans/2026-08-30-plan-sources.md)
 - 2026-08-30 **install from Chrome:** the page and README now say so — only a Chrome-minted
   WebAPK registers a share target; Brave/Firefox/Samsung add a shortcut that never appears
   in the share sheet (the first device install was from Brave, and regift was not offered).

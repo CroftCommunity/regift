@@ -1,10 +1,10 @@
 # regift
 
-**Share a post in, get the video out.** regift is a Croft PWA you share a Reddit post to
-from the Android share sheet; it extracts the video *on your device* — video and audio
-tracks fetched straight from Reddit's CDN and joined with ffmpeg.wasm — and hands the
-finished file to the next app through the same share sheet: Google Photos, Bluesky,
-whatever is installed. No server, no account, no ads. Nothing you share leaves your device
+**Share a post in, get the media out.** regift is a Croft PWA you share a post to from the
+Android share sheet — **Reddit, Bluesky, Mastodon or Tumblr** — and it fetches the media
+*on your device* (for Reddit video, the separate tracks are joined with ffmpeg.wasm; the
+others hand over their original files) and passes the result to the next app through the
+same share sheet: Google Photos, Bluesky, whatever is installed. No server, no account, no ads. Nothing you share leaves your device
 except to the app you hand the file to.
 
 Live: <https://croftcommunity.github.io/regift/>. **Install it from Chrome** (menu → Install
@@ -37,8 +37,12 @@ Reddit post ──share──► regift ──► read post ──► fetch trac
 - **Everything after that is automatic** and runs in the page: the DASH manifest and the
   best video + audio tracks come from `v.redd.it` (which is CORS-open, unsigned), and
   ffmpeg.wasm stream-copies them into one MP4 (no re-encode).
+- **Bluesky, Mastodon, Tumblr** need no assisted step at all: their reads are public and
+  CORS-open (Bluesky's original blobs come from the PDS; Tumblr's legacy JSON read is loaded
+  as a script). Galleries come out as several files. **Pixelfed** is recognised but refused
+  with the reason — its instances show posts only to signed-in members (`TODO.md` §4).
 - **Share out.** `navigator.share({ files })` on Android Chrome opens the system share
-  sheet; elsewhere, Save downloads the file.
+  sheet (several files at once for galleries); elsewhere, Save downloads each file.
 
 Why the assisted step exists, and the courier ladder that removes it (a browser extension
 on desktop/Firefox; a native shell on Android), is recorded in
@@ -67,8 +71,9 @@ reads the pin (`fnm install`, `eval "$(fnm env --use-on-cd)"`).
 
 ## Layout
 
-- `src/core/` — the platform-free pipeline: `share-in`, `reddit/{link,post,dash}`,
-  `pipeline`, `ports`.
+- `src/core/` — the platform-free pipeline: `share-in`, `sources` (the classifier),
+  `readers/{bluesky,mastodon,tumblr}`, `reddit/{link,post,dash}`, `post` (the shared
+  shape), `credit`, `pipeline`, `ports`.
 - `src/adapters/web/` — `fetch-courier`, `ffmpeg-muxer`, `share-out`.
 - `src/pages/` — one entry per HTML shell (`index`, `settings`); `src/nav.ts`, `theme.ts`,
   `sw*.ts`, `log.ts`, `version.ts` are the croft-pwa chassis.

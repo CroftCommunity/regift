@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('home renders the shell, wordmark, and build stamp', async ({ page }) => {
   await page.goto('/index.html');
-  await expect(page.getByRole('heading', { name: 'Share a post in, get the video out', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Share a post in, get the media out', level: 1 })).toBeVisible();
   await expect(page.locator('a.wordmark', { hasText: 'regift' })).toBeVisible();
   await expect(page.locator('[data-version-stamp]').first()).toBeVisible();
 });

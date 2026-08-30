@@ -124,16 +124,22 @@ const csp = [
   "default-src 'none'",
   "base-uri 'none'",
   "form-action 'none'",
-  "img-src 'self' data:",
+  // blob: for the previews of files the page itself produced.
+  "img-src 'self' data: blob:",
   "font-src 'self'",
   "style-src 'self'",
   "manifest-src 'self'",
   "media-src 'self' blob:",
-  "connect-src 'self' https://v.redd.it",
+  // Decided 2026-08-30 with the multi-source slice: connect-src is any https origin. The
+  // app's job is to fetch media from hosts the PERSON chose — a Mastodon instance, a
+  // Bluesky PDS, a Tumblr CDN — which cannot be enumerated. The bytes are read by the
+  // page and turned into a File; nothing is executed. script-src stays tight below.
+  "connect-src 'self' https:",
   "worker-src 'self'",
-  // https://www.reddit.com in script-src is the JSONP read of a post (src/adapters/web/jsonp.ts):
-  // the ONE cross-origin script, loaded only for a .json?jsonp= URL the core built.
-  `script-src 'self' 'wasm-unsafe-eval' https://www.reddit.com 'sha256-${sha256base64(THEME_INIT_JS)}'`,
+  // Cross-origin SCRIPTS are the two legacy-read tricks and nothing else:
+  //   https://www.reddit.com   the JSONP read of a post   (src/adapters/web/jsonp.ts)
+  //   https://*.tumblr.com     `var tumblr_api_read = …`  (same file, loadScriptGlobal)
+  `script-src 'self' 'wasm-unsafe-eval' https://www.reddit.com https://*.tumblr.com 'sha256-${sha256base64(THEME_INIT_JS)}'`,
 ].join('; ');
 
 // 9. Render each page; relative paths only (works at a root or under a subpath).

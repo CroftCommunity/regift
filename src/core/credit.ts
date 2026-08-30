@@ -1,11 +1,27 @@
 // The attribution line for the post you make next. Cross-posting with credit is
 // the product's framing, so the credit is an output of the pipeline, not an
 // afterthought — and it never prints "null" for a part it does not know.
-import type { RedditPost } from './reddit/post';
+import type { Post, Source } from './post';
 
-export function creditLine(post: RedditPost): string {
-  const who = post.author ? `u/${post.author}` : null;
-  const where = post.subreddit ? `r/${post.subreddit}` : 'Reddit';
+const PLATFORM: Record<Source, string> = { reddit: 'Reddit', bluesky: 'Bluesky', mastodon: 'Mastodon', tumblr: 'Tumblr', pixelfed: 'Pixelfed' };
+
+function person(post: Post): string | null {
+  if (!post.author) return null;
+  switch (post.source) {
+    case 'reddit':
+      return `u/${post.author}`;
+    case 'bluesky':
+    case 'mastodon':
+    case 'pixelfed':
+      return `@${post.author}`;
+    case 'tumblr':
+      return post.author;
+  }
+}
+
+export function creditLine(post: Post): string {
+  const who = person(post);
+  const where = post.where ?? PLATFORM[post.source];
   const head = who ? `via ${who} on ${where}` : `via ${where}`;
   return post.permalink ? `${head} — ${post.permalink}` : head;
 }
