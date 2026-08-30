@@ -97,7 +97,7 @@ await esbuild.build({
 });
 
 // 5. Precache manifest for this exact build (relative to the SW's own scope).
-const precache = ['./', ...PAGES.map((p) => p.html), 'manifest.webmanifest', 'icons/icon.svg', stylesHref, ...PAGES.map((p) => pageHrefs[p.entry])];
+const precache = ['./', ...PAGES.map((p) => p.html), 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', stylesHref, ...PAGES.map((p) => pageHrefs[p.entry])];
 
 // 6. Service worker (stable name).
 await esbuild.build({

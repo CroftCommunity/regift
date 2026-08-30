@@ -180,3 +180,14 @@ test('in a browser tab, the page says to install for the share sheet', async ({ 
   await page.goto('/index.html');
   await expect(page.getByTestId('install-hint')).toBeVisible();
 });
+
+test('Start over purges a try in progress and the shared query in one tap', async ({ page }) => {
+  await page.route('https://www.reddit.com/**', (route) => route.fulfill({ status: 403, body: 'blocked' }));
+  await page.goto('/index.html?url=' + encodeURIComponent(POST_URL));
+  await page.getByTestId('go').click();
+  await expect(page.getByTestId('assisted')).toBeVisible();
+  await page.getByTestId('reset').click();
+  await expect(page).toHaveURL(/\/index\.html$/);
+  await expect(page.getByTestId('url')).toHaveValue('');
+  await expect(page.getByTestId('assisted')).toHaveCount(0);
+});
