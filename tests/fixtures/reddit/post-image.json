@@ -1,0 +1,22 @@
+[
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t3",
+          "data": {
+            "subreddit": "pics",
+            "title": "A photo",
+            "author": "photographer",
+            "permalink": "/r/pics/comments/1photo1/a_photo/",
+            "is_video": false,
+            "secure_media": null,
+            "media": null,
+            "url": "https://i.redd.it/abc123.jpg"
+          }
+        }
+      ]
+    }
+  }
+]

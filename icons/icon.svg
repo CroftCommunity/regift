@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="regift">
+  <!-- Maskable: full-bleed background, art kept inside the central safe zone. -->
+  <rect width="512" height="512" fill="#2f3539" />
+  <!-- A parcel, re-tied: box, lid, ribbon — the Croft palette. -->
+  <rect x="136" y="236" width="240" height="150" rx="14" fill="#e9e1d6" stroke="#1c1e20" stroke-width="6" />
+  <rect x="116" y="176" width="280" height="64" rx="14" fill="#a2a9ab" stroke="#1c1e20" stroke-width="6" />
+  <rect x="236" y="176" width="40" height="210" fill="#ab5330" stroke="#1c1e20" stroke-width="6" />
+  <path d="M256 176 C 200 176, 176 120, 216 112 C 244 108, 256 150, 256 176 C 256 150, 268 108, 296 112 C 336 120, 312 176, 256 176 Z" fill="#ab5330" stroke="#1c1e20" stroke-width="6" />
+  <!-- The "re": an arrow looping back over the ribbon. -->
+  <path d="M330 300 a 44 44 0 1 1 -12 -52" fill="none" stroke="#3d6546" stroke-width="16" stroke-linecap="round" />
+  <path d="M312 232 l 20 10 l -6 22 z" fill="#3d6546" />
+</svg>
