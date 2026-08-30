@@ -2,8 +2,9 @@
 
 date: 2026-08-30
 identity: chasemp (`chase@owasp.org`, `github-personal`), repo `CroftCommunity/regift`
-Status: **built and gated (2026-08-30)** on `claude/sources`; Pixelfed refused with its reason
-pending a full gram.social post link to probe the ActivityPub note endpoint.
+Status: **landed 2026-08-30** (PR #5; credit embedding followed in PR #7, the i.redd.it
+verdict in PR #8). Pixelfed remains refused with its reason — the unauthenticated-door
+question is E157 in the backlog of record.
 
 ## Problem Statement
 
