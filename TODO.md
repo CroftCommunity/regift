@@ -25,10 +25,22 @@ Second courier for desktop/Firefox: the croft-pwa Croft Bridge extension pattern
 
 ## 2. Measure a large mux on a real phone
 
-The e2e proves the mux on 2-second fixtures in desktop Chromium. Nobody has measured a
-~100 MB input in Android System WebView (single-thread core grows from 32 MB). Run it on
-the Pixel with a long v.redd.it post; record wall-clock and whether it survives. Outcome
-decides: input cap, mandatory trim, or a native ffmpeg on Android. `[device: android]`
+The e2e proves the mux on 2-second fixtures in desktop Chromium, and the 2026-08-30 device
+run only exercised short clips. Nobody has measured a large input in Android System WebView
+(single-thread core grows from 32 MB); the ceiling of interest is Bluesky's new 300 MB /
+10-minute limit, since that is the biggest file a destination will take. Run a multi-minute
+v.redd.it post on the Pixel; record wall-clock and whether it survives. Outcome decides:
+input cap, mandatory trim, or a native ffmpeg in the app. A laptop cannot stand in — the
+2026-08-30 probing got the laptop's IP refused by Reddit within hours (see E158).
+`[device: android]`
+
+## 2a. Verify Google Photos shows the embedded credit
+
+Shipped 2026-08-30: images carry the credit as EXIF/iTXt/GIF-comment, videos as MP4
+container tags. Photos is expected to show description/author in its info panel for
+images; for video it is unverified. Regift something of each kind, open ⓘ in Photos,
+record what is visible. Outcome decides whether the extra ffmpeg tagging pass for
+non-Reddit mp4s (a full core load for cosmetics) stays or goes. `[device: android]`
 
 ## 3. A pure-JS fMP4 muxer
 
@@ -38,12 +50,11 @@ Measure before building: the SW caches the core after first use, so the cost is 
 
 ## 4. Pixelfed (gram.social)
 
-Classified and refused with the reason: on gram.social and pixelfed.social alike the
-status endpoints answer `302 → /login` without a session (2026-08-30), and the
-ActivityPub outbox is empty. One untested door: the post URL with
-`Accept: application/activity+json` (a non-safelisted header, so it needs a preflight the
-instance may or may not answer). Needs a full post link to probe. If that is closed too,
-Pixelfed is the same shape as Reddit-without-cookies — a native-courier source.
+Classified and refused with the reason (status endpoints `302 → /login` on two instances,
+2026-08-30). The open question — is there any unauthenticated door at all — is the backlog's,
+not this pile's: **E157** in `discovery/alpha/ROADMAP_TODO.md`, which needs a full
+gram.social post link to probe. If E157 closes the door, Pixelfed becomes a line item in
+§1: the native courier reads it the way it will read Reddit pictures.
 
 ## 5. Facebook and other sources
 
