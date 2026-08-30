@@ -1,0 +1,14 @@
+# Local, per-repo Claude Code permission allowlist — not shared
+.claude/settings.local.json
+
+# macOS
+.DS_Store
+
+# Node / build
+node_modules/
+dist/
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
