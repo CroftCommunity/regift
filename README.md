@@ -37,9 +37,11 @@ Reddit post ──share──► regift ──► read post ──► fetch trac
 - **Everything after that is automatic** and runs in the page: the DASH manifest and the
   best video + audio tracks come from `v.redd.it` (which is CORS-open, unsigned), and
   ffmpeg.wasm stream-copies them into one MP4 (no re-encode).
-- **Reddit pictures** (an image post, a gallery) come out as their original files from
-  `i.redd.it` — provided that host lets a page read them, which is being measured on a
-  device; if it refuses, regift says pictures from Reddit need the app.
+- **Reddit pictures** are parsed (an image post, a gallery in order) but `i.redd.it`
+  **refuses a page** — measured 2026-08-30 on the Pixel and confirmed from a second
+  network: the fetch is CORS-blocked, so regift says pictures from Reddit need the app.
+  The parsing is not wasted: the native courier gets Reddit pictures for free the day
+  the app lands (`TODO.md` §1).
 - **Bluesky, Mastodon, Tumblr** need no assisted step at all: their reads are public and
   CORS-open (Bluesky's original blobs come from the PDS; Tumblr's legacy JSON read is loaded
   as a script). Galleries come out as several files. **Pixelfed** is recognised but refused
