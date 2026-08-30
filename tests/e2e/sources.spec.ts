@@ -32,7 +32,10 @@ test('Bluesky: a video post becomes the original mp4 blob from the PDS, credited
   await expect(page.getByTestId('credit')).toContainText('Belgian Malinois');
   await expect(page.getByTestId('save')).toBeVisible();
   expect(reads.at(-1)).toBe('https://calocybe.us-west.host.bsky.network/xrpc/com.atproto.sync.getBlob?did=did%3Aplc%3A47im5i5ptau2br4rh7lp2ryr&cid=bafkreid6gkdh3svitvzhsvnqig3ph7szc5rsytkzwwhevd56nd3j2tsm2q');
-  expect((await saved(page)).equals(fixture('media/video.mp4'))).toBe(true);
+  const savedVideo = await saved(page);
+  expect(savedVideo.subarray(4, 8).toString('latin1')).toBe('ftyp');
+  // The credit was written into the container by the ffmpeg stream-copy pass.
+  expect(savedVideo.toString('latin1')).toContain('via @rainmaker1973-m.bsky.social on Bluesky');
   await expect(page.getByTestId('credit-line')).toHaveText('via @rainmaker1973-m.bsky.social on Bluesky — https://bsky.app/profile/rainmaker1973-m.bsky.social/post/3muciddrju72p');
 });
 
@@ -43,7 +46,12 @@ test('Mastodon: an image status becomes the attachment, credited with the instan
   await page.getByTestId('go').click();
   await expect(page.getByTestId('save')).toBeVisible();
   await expect(page.getByTestId('preview')).toBeVisible();
-  expect((await saved(page)).equals(PNG_1x1)).toBe(true);
+  // Still a decodable PNG after tagging: the preview rendered with real pixels.
+  expect(await page.getByTestId('preview').evaluate((el) => (el as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+  const savedPng = await saved(page);
+  expect(savedPng.subarray(1, 4).toString('latin1')).toBe('PNG');
+  expect(savedPng.toString('latin1')).toContain('iTXt');
+  expect(savedPng.toString('utf8')).toContain('via @Mastodon@mastodon.social on mastodon.social');
   await expect(page.getByTestId('credit-line')).toHaveText('via @Mastodon@mastodon.social on mastodon.social — https://mastodon.social/@Mastodon/116929144390213579');
 });
 

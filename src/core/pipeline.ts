@@ -2,7 +2,7 @@
 // functions rather than one, because the shell decides how it obtained the post
 // (the courier read it, or the person pasted the JSON after the courier was
 // blocked) and then hands the video id to the second half either way.
-import { CourierBlockedError, type Courier, type Muxer } from './ports';
+import { CourierBlockedError, type Courier, type Muxer, type VideoTags } from './ports';
 import { classifyRedditLink, postJsonUrl } from './reddit/link';
 import { parsePostListing, type RedditPost } from './reddit/post';
 import { manifestUrl, parseDashManifest, pickTracks, trackUrl } from './reddit/dash';
@@ -88,6 +88,8 @@ export interface RegiftOptions {
   readonly courier: Courier;
   readonly muxer: Muxer;
   readonly maxHeight?: number;
+  /** Tags written into the muxed file's container. */
+  readonly tags?: VideoTags;
   readonly onStage?: (stage: Stage) => void;
   readonly onProgress?: (stage: Stage, ratio: number) => void;
 }
@@ -118,7 +120,7 @@ export async function regiftVideo(opts: RegiftOptions): Promise<RegiftOutput> {
   const audio = await opts.courier.bytes(trackUrl(opts.videoId, picked.audio.file), progress('audio'));
 
   stage('mux');
-  const bytes = await opts.muxer.mux({ video, audio }, (r) => opts.onProgress?.('mux', r));
+  const bytes = await opts.muxer.mux({ video, audio, ...(opts.tags ? { tags: opts.tags } : {}) }, (r) => opts.onProgress?.('mux', r));
   stage('done');
   return { bytes, filename };
 }

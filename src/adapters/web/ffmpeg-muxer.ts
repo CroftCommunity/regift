@@ -4,7 +4,7 @@
 // NOT precached, and is fetched lazily on first use; the service worker's
 // cache-first rule keeps it after that. No SharedArrayBuffer, so no COOP/COEP.
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import type { Muxer } from '../../core/ports';
+import type { Muxer, VideoTags } from '../../core/ports';
 import { log } from '../../log';
 
 export function ffmpegMuxer(vendorBase: URL): Muxer {
@@ -24,23 +24,28 @@ export function ffmpegMuxer(vendorBase: URL): Muxer {
     return loading;
   };
 
+  const tagArgs = (tags?: VideoTags): string[] =>
+    tags ? ['-metadata', `title=${tags.title}`, '-metadata', `artist=${tags.artist}`, '-metadata', `comment=${tags.comment}`] : [];
+
+  const run = async (inputs: { name: string; bytes: Uint8Array }[], args: string[], onProgress?: (ratio: number) => void): Promise<Uint8Array> => {
+    const ffmpeg = await load();
+    const report = ({ progress }: { progress: number }): void => onProgress?.(progress);
+    ffmpeg.on('progress', report);
+    try {
+      for (const i of inputs) await ffmpeg.writeFile(i.name, i.bytes);
+      const code = await ffmpeg.exec([...inputs.flatMap((i) => ['-i', i.name]), ...args, '-c', 'copy', '-movflags', '+faststart', 'out.mp4']);
+      if (code !== 0) throw new Error(`ffmpeg failed with exit code ${code}`);
+      const out = await ffmpeg.readFile('out.mp4');
+      if (typeof out === 'string') throw new Error('ffmpeg returned text for a binary file');
+      return out;
+    } finally {
+      ffmpeg.off('progress', report);
+      for (const f of [...inputs.map((i) => i.name), 'out.mp4']) await ffmpeg.deleteFile(f).catch(() => undefined);
+    }
+  };
+
   return {
-    mux: async ({ video, audio }, onProgress) => {
-      const ffmpeg = await load();
-      const report = ({ progress }: { progress: number }): void => onProgress?.(progress);
-      ffmpeg.on('progress', report);
-      try {
-        await ffmpeg.writeFile('v.mp4', video);
-        await ffmpeg.writeFile('a.mp4', audio);
-        const code = await ffmpeg.exec(['-i', 'v.mp4', '-i', 'a.mp4', '-c', 'copy', '-movflags', '+faststart', 'out.mp4']);
-        if (code !== 0) throw new Error(`ffmpeg mux failed with exit code ${code}`);
-        const out = await ffmpeg.readFile('out.mp4');
-        if (typeof out === 'string') throw new Error('ffmpeg returned text for a binary file');
-        return out;
-      } finally {
-        ffmpeg.off('progress', report);
-        for (const f of ['v.mp4', 'a.mp4', 'out.mp4']) await ffmpeg.deleteFile(f).catch(() => undefined);
-      }
-    },
+    mux: ({ video, audio, tags }, onProgress) => run([{ name: 'v.mp4', bytes: video }, { name: 'a.mp4', bytes: audio }], tagArgs(tags), onProgress),
+    tag: (video, tags) => run([{ name: 'in.mp4', bytes: video }], tagArgs(tags)),
   };
 }

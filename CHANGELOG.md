@@ -7,6 +7,11 @@ entry here before it lands.
 
 ## 2026-08
 
+- 2026-08-30 **the credit rides inside the file:** images carry it as EXIF (JPEG, WebP),
+  iTXt (PNG) or a comment block (GIF), and videos carry it in the MP4 container tags —
+  visible in Google Photos' info panel. Social platforms strip metadata on upload, so the
+  visible credit on a repost still comes from Copy credit. A tagging failure never costs
+  the file; you get the untagged bytes.
 - 2026-08-30 **Reddit pictures:** an image post or a gallery comes out as its original
   files from i.redd.it, in gallery order — *if* Reddit's image host lets a page read it,
   which was not confirmed when this shipped; if it refuses, regift says so and that
