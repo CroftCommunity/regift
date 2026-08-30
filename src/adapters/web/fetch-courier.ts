@@ -1,10 +1,11 @@
-// The page's own courier: plain fetch. It can read exactly one thing a page is
-// allowed to read cross-origin — v.redd.it, which sends `access-control-allow-
-// origin: *` (measured 2026-08-30). reddit.com sends no CORS headers, so the
-// courier says so up front and the core routes around it (the assisted step).
+// The page's own courier: plain fetch. Reads anything that sends CORS — and the
+// media hosts regift uses all do (measured 2026-08-30: v.redd.it, Bluesky PDSs and
+// the public AppView, Mastodon instances and their files hosts, Tumblr's CDNs).
+// The one host family it declines up front is reddit.com, which sends no CORS
+// headers, so the core routes around it (JSONP, then the assisted step).
 import type { Courier } from '../../core/ports';
 
-const READABLE_HOSTS = new Set(['v.redd.it']);
+const NO_CORS = /(^|\.)reddit\.com$/;
 
 async function readAll(res: Response, onProgress?: (loaded: number, total: number | null) => void): Promise<Uint8Array> {
   const total = Number(res.headers.get('content-length')) || null;
@@ -35,7 +36,7 @@ async function get(url: string): Promise<Response> {
 }
 
 export const fetchCourier: Courier = {
-  canRead: (url) => READABLE_HOSTS.has(new URL(url).hostname),
+  canRead: (url) => !NO_CORS.test(new URL(url).hostname),
   text: async (url) => (await get(url)).text(),
   bytes: async (url, onProgress) => readAll(await get(url), onProgress),
 };

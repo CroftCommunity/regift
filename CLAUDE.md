@@ -3,8 +3,8 @@
 ## Identity (workspace architecture)
 
 **Scope:** regift — a Croft PWA that receives a shared social-platform post, extracts the
-media on-device, and hands the file to the next app via the share sheet. Reddit video →
-anywhere, today. **Not this repo:** any server, any account with the source platform, any
+media on-device, and hands the file to the next app via the share sheet. Reddit video,
+Bluesky, Mastodon and Tumblr media → anywhere, today. **Not this repo:** any server, any account with the source platform, any
 publishing to a destination (the destination app does its own upload).
 **Provides:** the platform-free extraction core + web adapters. **Consumes:** the croft-pwa
 chassis (build, SW, tokens, gate). Card + altitudes: `CroftC/.claude/ARCHITECTURE.md`.
@@ -47,6 +47,14 @@ before assuming they still hold):
   (`TODO.md` §1). CSP admits `https://www.reddit.com` in `script-src` for it, nothing else.
 - old.reddit's post title anchor is the bare `https://v.redd.it/<id>` (`a.title[href]`,
   `.thing[data-url]`) — the no-JSON fallback: long-press → Share link → regift.
+- **Bluesky:** AppView + plc.directory + PDS `getBlob` are all `ACAO *`; the blob is the
+  ORIGINAL upload (no mux). `cdn.bsky.app` sends no CORS — images come from the PDS too.
+- **Mastodon:** `/api/v1/statuses/:id` and the files host are `ACAO *` (mastodon.social).
+- **Tumblr:** v2 needs a key; the legacy `<blog>.tumblr.com/api/read/json?id=` answers as
+  JavaScript (`var tumblr_api_read = {…}`) with no CORS, loaded as a script; both media CDNs
+  are `ACAO *`. A `video` post may be a YouTube embed — refused by name.
+- **Pixelfed:** status endpoints `302 → /login` without a session on gram.social and
+  pixelfed.social; refused with the reason.
 - A `/s/` share link 307s; appending `.json` to it lands on the subreddit root, not the post.
 - Reddit's mobile web share button sends `navigator.share({ url })` with only the `/s/` link.
 
@@ -58,8 +66,10 @@ before assuming they still hold):
 - **Hex only in `tokens.css`**; components use `var()`. Relative paths only. Pages, not
   modals. Mobile-first: tap targets ≥44px, no overflow at 320/360/390 (measured by element
   geometry, not `scrollWidth` alone).
-- **CSP is `default-src 'none'`** with `connect-src` limited to `'self'` + `https://v.redd.it`
-  and `script-src` carrying `'wasm-unsafe-eval'` + `https://www.reddit.com` (JSONP only). Widening it is a design decision, not a fix.
+- **CSP is `default-src 'none'`**; `connect-src 'self' https:` (the app fetches media from
+  hosts the person chose — decided 2026-08-30, why in `build.mjs`); `script-src` names exactly
+  the two legacy-read origins (`https://www.reddit.com` JSONP, `https://*.tumblr.com`) plus
+  `'wasm-unsafe-eval'`. Adding a script origin is a design decision, not a fix. Widening it is a design decision, not a fix.
 - **ffmpeg core is vendored same-origin by `build.mjs`** from the pinned npm package, never
   precached (31 MB), fetched on first mux, kept by the SW's cache-first rule.
 - No YouTube — not in code, copy, or listings.

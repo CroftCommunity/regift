@@ -6,6 +6,11 @@ import { CourierBlockedError, type Courier, type Muxer } from './ports';
 import { classifyRedditLink, postJsonUrl } from './reddit/link';
 import { parsePostListing, type RedditPost } from './reddit/post';
 import { manifestUrl, parseDashManifest, pickTracks, trackUrl } from './reddit/dash';
+import { classifyLink, NeedsSignInError } from './sources';
+import { readBluesky } from './readers/bluesky';
+import { readMastodon } from './readers/mastodon';
+import { readTumblr } from './readers/tumblr';
+import type { Post } from './post';
 
 /** The link is a redirect only a browser navigation can follow. */
 export class NeedsBrowserError extends Error {
@@ -29,6 +34,39 @@ export async function readPost(url: string, courier: Courier): Promise<RedditPos
     }
     case 'unknown':
       throw new Error(`not a reddit post or video link: ${link.url}`);
+  }
+}
+
+/** A Reddit post in the shared Post shape. */
+export function fromReddit(post: RedditPost): Post {
+  return {
+    source: 'reddit',
+    title: post.title,
+    author: post.author,
+    where: post.subreddit ? `r/${post.subreddit}` : null,
+    permalink: post.permalink,
+    items: post.video ? [{ kind: 'reddit-video', videoId: post.video.id }] : [],
+  };
+}
+
+/** Any supported link → a Post. The page's one entry point. */
+export async function readAny(url: string, courier: Courier): Promise<Post> {
+  const link = classifyLink(url);
+  switch (link.source) {
+    case 'reddit':
+      return fromReddit(await readPost(url, courier));
+    case 'bluesky':
+      return readBluesky(link, courier);
+    case 'mastodon':
+      return readMastodon(link, courier);
+    case 'tumblr':
+      return readTumblr(link, courier);
+    case 'pixelfed':
+      // Pixelfed's status API answers 302 → /login without a session (gram.social and
+      // pixelfed.social alike, 2026-08-30); the ActivityPub outbox is empty.
+      throw new NeedsSignInError('Pixelfed', url);
+    case 'unknown':
+      throw new Error(`not a supported post link: ${link.url}`);
   }
 }
 

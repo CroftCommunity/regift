@@ -321,3 +321,13 @@ progress {
   border: var(--stroke) solid var(--border);
   border-radius: var(--r-m);
 }
+
+.result {
+  margin-top: var(--s-4);
+}
+.result .btn {
+  margin-top: var(--s-2);
+}
+img.preview {
+  object-fit: contain;
+}

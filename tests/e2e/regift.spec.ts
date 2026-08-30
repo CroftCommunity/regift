@@ -100,7 +100,7 @@ test('a post link is read by JSONP with no user step when the browser has Reddit
   const hits = await routeVredd(page, 'testvid03');
   await page.goto('/index.html?url=' + encodeURIComponent(POST_URL + '?share_id=x&utm_source=share'));
   await page.getByTestId('go').click();
-  await expect(page.getByTestId('credit')).toContainText('Dad jokes — u/someredditor in r/GuysBeingDudes');
+  await expect(page.getByTestId('credit')).toContainText('Dad jokes — u/someredditor on r/GuysBeingDudes');
   expect(reddit).toEqual([POST_URL + '.json?limit=0&raw_json=1&jsonp=__regift_jsonp_1']);
   await expect(page.getByTestId('save')).toBeVisible({ timeout: 90_000 });
   expect(hits.length).toBe(3);
@@ -149,7 +149,7 @@ test('when Reddit refuses the JSONP read, the assisted step is offered and paste
 
   await page.getByTestId('post-json').fill(postJson);
   await page.getByTestId('use-json').click();
-  await expect(page.getByTestId('credit')).toContainText('Dad jokes — u/someredditor in r/GuysBeingDudes');
+  await expect(page.getByTestId('credit')).toContainText('Dad jokes — u/someredditor on r/GuysBeingDudes');
   await expect(page.getByTestId('save')).toBeVisible({ timeout: 90_000 });
   expect(hits.length).toBe(3);
 });

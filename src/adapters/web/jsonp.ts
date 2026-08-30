@@ -43,3 +43,38 @@ export function loadJsonp(url: string, timeoutMs = 10_000): Promise<unknown> {
     document.head.append(script);
   });
 }
+
+/**
+ * Load a script that assigns a global (Tumblr's legacy `var tumblr_api_read = {…}`)
+ * and hand the value back. Same mechanism as JSONP, minus the callback.
+ */
+export function loadScriptGlobal(url: string, name: string, timeoutMs = 10_000): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    // A `var` at top level is a non-configurable global: `delete` throws in strict
+    // mode, so the slot is cleared by assignment.
+    const w = window as unknown as Record<string, unknown>;
+    w[name] = undefined;
+    const done = (): void => {
+      script.remove();
+      clearTimeout(timer);
+    };
+    const timer = setTimeout(() => {
+      done();
+      reject(new Error(`script ${url}: timed out`));
+    }, timeoutMs);
+    script.onload = () => {
+      const value = w[name];
+      w[name] = undefined;
+      done();
+      if (value === undefined) reject(new Error(`script ${url}: did not define ${name}`));
+      else resolve(value);
+    };
+    script.onerror = () => {
+      done();
+      reject(new Error(`script ${url}: refused`));
+    };
+    script.src = url;
+    document.head.append(script);
+  });
+}
