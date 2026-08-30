@@ -200,8 +200,14 @@ function content(): HTMLElement {
     } catch (err) {
       log.error('regift failed', err);
       bar.remove();
-      line.textContent = `Could not get the media: ${err instanceof Error ? err.message : String(err)}`;
+      // Reddit's image hosts were not confirmed CORS-open when this shipped (2026-08-30);
+      // if the fetch is refused, say what that means rather than showing "Failed to fetch".
+      const redditImage = post.source === 'reddit' && post.items.some((it) => it.kind === 'file');
+      line.textContent = redditImage
+        ? "Reddit's image host refused this page. Pictures from Reddit need the regift app (coming); video works today."
+        : `Could not get the media: ${err instanceof Error ? err.message : String(err)}`;
       line.setAttribute('data-tone', 'error');
+      line.setAttribute('data-testid', 'media-error');
       return;
     }
     bar.remove();

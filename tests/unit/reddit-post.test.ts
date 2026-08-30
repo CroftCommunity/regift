@@ -14,6 +14,7 @@ describe('parsePostListing', () => {
       subreddit: 'GuysBeingDudes',
       permalink: 'https://www.reddit.com/r/GuysBeingDudes/comments/1vys36f/dad_jokes/',
       video: { id: 'blke7z3ttolh1', hasAudio: true, duration: 12, width: 480, height: 854 },
+      images: [],
     });
   });
 
@@ -39,5 +40,35 @@ describe('parsePostListing', () => {
     expect(() => parsePostListing({ hello: 'world' })).toThrow(PostParseError);
     expect(() => parsePostListing('<!doctype html>')).toThrow(PostParseError);
     expect(() => parsePostListing([{ kind: 'Listing', data: { children: [] } }])).toThrow(PostParseError);
+  });
+});
+
+// Images: a single-image post carries its i.redd.it URL in `url`; a gallery lists
+// media ids in `gallery_data.items` (the display order) with mime types in
+// `media_metadata`, and the original file lives at i.redd.it/<id>.<ext>.
+describe('parsePostListing: images', () => {
+  it('a single-image post yields one image', () => {
+    const post = parsePostListing(fixture('post-image'));
+    expect(post.video).toBeNull();
+    expect(post.images).toEqual([{ url: 'https://i.redd.it/abc123.jpg', mime: 'image/jpeg' }]);
+  });
+
+  it('a gallery yields every image in gallery order, originals from i.redd.it', () => {
+    const post = parsePostListing(fixture('post-gallery'));
+    expect(post.images).toEqual([
+      { url: 'https://i.redd.it/aaa111.jpg', mime: 'image/jpeg' },
+      { url: 'https://i.redd.it/bbb222.png', mime: 'image/png' },
+      { url: 'https://i.redd.it/ccc333.gif', mime: 'image/gif' },
+    ]);
+  });
+
+  it('a text post has neither video nor images', () => {
+    const post = parsePostListing(fixture('post-text'));
+    expect(post.video).toBeNull();
+    expect(post.images).toEqual([]);
+  });
+
+  it('a video post has no images', () => {
+    expect(parsePostListing(fixture('post-video')).images).toEqual([]);
   });
 });

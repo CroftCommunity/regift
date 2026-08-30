@@ -1,0 +1,29 @@
+[
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t3",
+          "data": {
+            "subreddit": "pics",
+            "title": "Three views",
+            "author": "galleryposter",
+            "permalink": "/r/pics/comments/1gal001/three_views/",
+            "is_video": false,
+            "is_gallery": true,
+            "url": "https://www.reddit.com/gallery/1gal001",
+            "secure_media": null,
+            "media": null,
+            "gallery_data": { "items": [{ "media_id": "aaa111", "id": 1 }, { "media_id": "bbb222", "id": 2 }, { "media_id": "ccc333", "id": 3 }] },
+            "media_metadata": {
+              "bbb222": { "status": "valid", "e": "Image", "m": "image/png", "id": "bbb222", "s": { "y": 800, "x": 600, "u": "https://preview.redd.it/bbb222.png?width=600&format=png&auto=webp&s=sig2" } },
+              "aaa111": { "status": "valid", "e": "Image", "m": "image/jpg", "id": "aaa111", "s": { "y": 1080, "x": 1920, "u": "https://preview.redd.it/aaa111.jpg?width=1920&format=pjpg&auto=webp&s=sig1" } },
+              "ccc333": { "status": "valid", "e": "AnimatedImage", "m": "image/gif", "id": "ccc333", "s": { "y": 300, "x": 300, "gif": "https://i.redd.it/ccc333.gif", "mp4": "https://i.redd.it/ccc333.mp4" } }
+            }
+          }
+        }
+      ]
+    }
+  }
+]

@@ -40,3 +40,16 @@ describe('readAny', () => {
     await expect(readAny('https://example.com/x', courier)).rejects.toThrow(/not a supported/i);
   });
 });
+
+describe('readAny: reddit images become file items', () => {
+  it('a gallery becomes numbered image files', async () => {
+    const gallery = readFileSync(new URL('../fixtures/reddit/post-gallery.json', import.meta.url), 'utf8');
+    const c: Courier = { ...courier, text: () => Promise.resolve(gallery) };
+    const post = await readAny('https://www.reddit.com/r/pics/comments/1gal001/three_views/', c);
+    expect(post.items).toEqual([
+      { kind: 'file', url: 'https://i.redd.it/aaa111.jpg', mime: 'image/jpeg', filename: 'regift-reddit-1gal001-1.jpg' },
+      { kind: 'file', url: 'https://i.redd.it/bbb222.png', mime: 'image/png', filename: 'regift-reddit-1gal001-2.png' },
+      { kind: 'file', url: 'https://i.redd.it/ccc333.gif', mime: 'image/gif', filename: 'regift-reddit-1gal001-3.gif' },
+    ]);
+  });
+});

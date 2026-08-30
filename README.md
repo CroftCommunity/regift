@@ -37,6 +37,9 @@ Reddit post ──share──► regift ──► read post ──► fetch trac
 - **Everything after that is automatic** and runs in the page: the DASH manifest and the
   best video + audio tracks come from `v.redd.it` (which is CORS-open, unsigned), and
   ffmpeg.wasm stream-copies them into one MP4 (no re-encode).
+- **Reddit pictures** (an image post, a gallery) come out as their original files from
+  `i.redd.it` — provided that host lets a page read them, which is being measured on a
+  device; if it refuses, regift says pictures from Reddit need the app.
 - **Bluesky, Mastodon, Tumblr** need no assisted step at all: their reads are public and
   CORS-open (Bluesky's original blobs come from the PDS; Tumblr's legacy JSON read is loaded
   as a script). Galleries come out as several files. **Pixelfed** is recognised but refused
