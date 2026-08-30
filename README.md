@@ -7,8 +7,11 @@ finished file to the next app through the same share sheet: Google Photos, Blues
 whatever is installed. No server, no account, no ads. Nothing you share leaves your device
 except to the app you hand the file to.
 
-Live: <https://croftcommunity.github.io/regift/> (install it from the browser menu; the
-share target only registers for an *installed* PWA).
+Live: <https://croftcommunity.github.io/regift/>. **Install it from Chrome** (menu → Install
+app): only a Chrome-minted WebAPK registers a share target. Brave, Firefox and Samsung
+Internet install a home-screen shortcut, which never appears in the share sheet (measured
+2026-08-30 — the first install was from Brave and regift was not offered). Once installed
+from Chrome, you can share to it from any app, Brave included.
 
 ## What works today (2026-08-30)
 

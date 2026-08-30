@@ -291,7 +291,7 @@ function content(): HTMLElement {
   });
 
   if (!isInstalled()) {
-    const hint = el('p', 'hint', 'Tip: install regift (browser menu → Install app) and it appears in the share sheet, so you can share a post straight to it.');
+    const hint = el('p', 'hint', 'Tip: install regift from Chrome (menu → Install app) and it appears in the Android share sheet, so you can share a post straight to it. Other browsers (Brave, Firefox, Samsung) add a shortcut only, which never registers a share target.');
     hint.setAttribute('data-testid', 'install-hint');
     root.append(hint);
   }
