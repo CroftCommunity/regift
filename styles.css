@@ -1,0 +1,312 @@
+/*
+ * regift — components. TOKEN-ONLY: no raw hex lives here (enforced by
+ * tests/unit/brand-nohex.test.ts). Every colour is a var() from tokens.css.
+ * Mobile-first, single column; tabs move to a bottom bar on phones.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--t-body);
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  margin: 0 0 var(--s-3);
+}
+h1 {
+  font-size: var(--t-h1);
+}
+h2 {
+  font-size: var(--t-h2);
+}
+h3 {
+  font-size: var(--t-h3);
+}
+p {
+  margin: 0 0 var(--s-4);
+}
+a {
+  color: var(--link);
+  text-underline-offset: 2px;
+}
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: var(--r-s);
+}
+
+/* Machine facts render in mono muted — "if software produced the value, it's mono". */
+.mono {
+  font-family: var(--font-mono);
+  color: var(--ink-muted);
+  font-size: var(--t-stamp);
+  overflow-wrap: anywhere;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-s);
+}
+
+/* --- App shell --- */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: var(--stroke) solid var(--border);
+  background: var(--surface);
+}
+.wordmark {
+  font-family: var(--font-display);
+  font-size: var(--t-wordmark);
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  margin-right: auto;
+}
+.topbar-action {
+  background: none;
+  border: var(--stroke) solid var(--border);
+  color: var(--ink);
+  border-radius: var(--r-pill);
+  padding: var(--s-1) var(--s-3);
+  min-height: 44px;
+  font: inherit;
+  cursor: pointer;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--s-5) var(--s-4) var(--s-7);
+}
+
+.panel {
+  background: var(--surface);
+  border: var(--stroke) solid var(--border);
+  border-radius: var(--r-l);
+  padding: var(--s-5);
+  margin-bottom: var(--s-5);
+}
+
+.tabs {
+  display: flex;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  border-bottom: var(--stroke) solid var(--border);
+  overflow-x: auto;
+}
+.tab {
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-pill);
+  color: var(--ink-muted);
+  text-decoration: none;
+  white-space: nowrap;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.tab[aria-current='page'] {
+  background: var(--active);
+  color: var(--active-ink);
+}
+
+/* --- Controls --- */
+.btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--r-m);
+  padding: var(--s-2) var(--s-4);
+  min-height: 44px;
+  border: var(--stroke) solid transparent;
+}
+.btn:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.btn-secondary {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--ink);
+}
+.btn-danger {
+  background: var(--danger);
+  color: var(--danger-ink);
+}
+
+.field {
+  display: block;
+  margin-bottom: var(--s-4);
+}
+.field-label {
+  display: block;
+  font-size: var(--t-caption);
+  color: var(--ink-muted);
+  margin-bottom: var(--s-1);
+}
+.field input,
+.field textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: var(--stroke) solid var(--border);
+  border-radius: var(--r-m);
+}
+.field textarea {
+  font-family: var(--font-mono);
+  font-size: var(--t-caption);
+  min-height: 7rem;
+  resize: vertical;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.actions .btn {
+  flex: 1 1 10rem;
+}
+
+/* --- The regift flow --- */
+.step {
+  border-left: 3px solid var(--border);
+  padding-left: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+.step[data-state='active'] {
+  border-left-color: var(--accent);
+}
+.step[data-state='done'] {
+  border-left-color: var(--active);
+}
+.step h2 {
+  font-size: var(--t-h3);
+  margin-bottom: var(--s-2);
+}
+.status {
+  margin: var(--s-3) 0 0;
+  color: var(--ink-muted);
+}
+.status[data-tone='error'] {
+  color: var(--danger);
+}
+progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--accent);
+}
+.credit {
+  font-size: var(--t-caption);
+  color: var(--ink-muted);
+}
+.preview {
+  display: block;
+  width: 100%;
+  max-height: 60vh;
+  background: var(--code-bg);
+  border-radius: var(--r-m);
+  margin-bottom: var(--s-3);
+}
+.hint {
+  border: var(--stroke) dashed var(--border);
+  border-radius: var(--r-l);
+  padding: var(--s-4);
+  color: var(--ink-muted);
+  font-size: var(--t-caption);
+}
+.hint ol {
+  margin: var(--s-2) 0 0;
+  padding-left: var(--s-5);
+}
+
+/* --- Footer + update toast --- */
+.build-stamp {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-top: var(--stroke) solid var(--border);
+}
+.croft-attr {
+  font-family: var(--font-display);
+  font-size: var(--t-caption);
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+.update-toast {
+  position: fixed;
+  left: 50%;
+  bottom: var(--s-4);
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  max-width: calc(100vw - var(--s-5));
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface);
+  color: var(--ink);
+  border: var(--stroke) solid var(--border);
+  border-radius: var(--r-l);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+.update-toast .btn {
+  min-height: 36px;
+  padding: var(--s-1) var(--s-3);
+}
+
+@media (max-width: 40rem) {
+  main {
+    padding: var(--s-4) var(--s-3) var(--s-7);
+  }
+  .tabs {
+    position: sticky;
+    bottom: 0;
+    border-top: var(--stroke) solid var(--border);
+    border-bottom: none;
+    background: var(--surface);
+    justify-content: space-around;
+  }
+  .update-toast {
+    bottom: calc(var(--s-7) + var(--s-3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

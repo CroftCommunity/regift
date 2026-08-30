@@ -1,0 +1,34 @@
+[
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t3",
+          "data": {
+            "subreddit": "GuysBeingDudes",
+            "title": "Dad jokes",
+            "author": "someredditor",
+            "permalink": "/r/GuysBeingDudes/comments/1vys36f/dad_jokes/",
+            "is_video": true,
+            "secure_media": {
+              "reddit_video": {
+                "bitrate_kbps": 1200,
+                "fallback_url": "https://v.redd.it/blke7z3ttolh1/CMAF_480.mp4?source=fallback",
+                "has_audio": true,
+                "height": 854,
+                "width": 480,
+                "duration": 12,
+                "dash_url": "https://v.redd.it/blke7z3ttolh1/DASHPlaylist.mpd?a=1790698311%2CNmE2&v=1&f=sd",
+                "hls_url": "https://v.redd.it/blke7z3ttolh1/HLSPlaylist.m3u8?a=1790698311&v=1&f=sd",
+                "is_gif": false,
+                "transcoding_status": "completed"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  { "kind": "Listing", "data": { "children": [] } }
+]

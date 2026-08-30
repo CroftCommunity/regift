@@ -1,0 +1,41 @@
+[
+  {
+    "kind": "Listing",
+    "data": {
+      "children": [
+        {
+          "kind": "t3",
+          "data": {
+            "subreddit": "aww",
+            "title": "Reposting this from r/rarepuppers",
+            "author": "crossposter",
+            "permalink": "/r/aww/comments/1abcdef/reposting_this/",
+            "is_video": false,
+            "secure_media": null,
+            "media": null,
+            "crosspost_parent_list": [
+              {
+                "subreddit": "rarepuppers",
+                "title": "Original title",
+                "author": "originalposter",
+                "permalink": "/r/rarepuppers/comments/1zzzzzz/original_title/",
+                "is_video": true,
+                "secure_media": {
+                  "reddit_video": {
+                    "fallback_url": "https://v.redd.it/orig1234abcd/CMAF_720.mp4?source=fallback",
+                    "has_audio": false,
+                    "height": 1280,
+                    "width": 720,
+                    "duration": 7,
+                    "dash_url": "https://v.redd.it/orig1234abcd/DASHPlaylist.mpd?a=x&v=1&f=sd",
+                    "is_gif": true
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+]
