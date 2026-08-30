@@ -131,7 +131,9 @@ const csp = [
   "media-src 'self' blob:",
   "connect-src 'self' https://v.redd.it",
   "worker-src 'self'",
-  `script-src 'self' 'wasm-unsafe-eval' 'sha256-${sha256base64(THEME_INIT_JS)}'`,
+  // https://www.reddit.com in script-src is the JSONP read of a post (src/adapters/web/jsonp.ts):
+  // the ONE cross-origin script, loaded only for a .json?jsonp= URL the core built.
+  `script-src 'self' 'wasm-unsafe-eval' https://www.reddit.com 'sha256-${sha256base64(THEME_INIT_JS)}'`,
 ].join('; ');
 
 // 9. Render each page; relative paths only (works at a root or under a subpath).

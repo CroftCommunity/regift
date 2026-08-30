@@ -15,6 +15,9 @@ const MANIFEST = `<?xml version="1.0"?>
       <Representation bandwidth="100000" codecs="avc1.42c00d" height="160" id="1" mimeType="video/mp4" width="90">
         <BaseURL>CMAF_160.mp4</BaseURL>
       </Representation>
+      <Representation bandwidth="900000" codecs="avc1.42c00d" height="1280" id="3" mimeType="video/mp4" width="720">
+        <BaseURL>CMAF_720.mp4</BaseURL>
+      </Representation>
     </AdaptationSet>
     <AdaptationSet contentType="audio">
       <Representation audioSamplingRate="48000" bandwidth="64000" codecs="mp4a.40.2" id="2" mimeType="audio/mp4">
@@ -31,9 +34,25 @@ async function routeVredd(page: Page, videoId: string): Promise<string[]> {
     hits.push(url);
     const cors = { 'access-control-allow-origin': '*' };
     if (url.endsWith('DASHPlaylist.mpd')) return route.fulfill({ status: 200, headers: cors, contentType: 'application/dash+xml', body: MANIFEST });
-    if (url.endsWith('CMAF_160.mp4')) return route.fulfill({ status: 200, headers: cors, contentType: 'video/mp4', body: fixture('media/video.mp4') });
+    if (url.endsWith('CMAF_160.mp4') || url.endsWith('CMAF_720.mp4')) return route.fulfill({ status: 200, headers: cors, contentType: 'video/mp4', body: fixture('media/video.mp4') });
     if (url.endsWith('CMAF_AUDIO_64.mp4')) return route.fulfill({ status: 200, headers: cors, contentType: 'video/mp4', body: fixture('media/audio.mp4') });
     return route.fulfill({ status: 404, headers: cors, body: 'nope' });
+  });
+  return hits;
+}
+
+const POST_URL = 'https://www.reddit.com/r/GuysBeingDudes/comments/1vys36f/dad_jokes/';
+const postListing = (videoId: string): string => fixture('reddit/post-video.json').toString('utf8').replace(/blke7z3ttolh1/g, videoId);
+
+/** reddit.com answers the JSONP read (as a signed-in browser sees it), or refuses it. */
+async function routeReddit(page: Page, answer: { readonly videoId: string } | 'refuse'): Promise<string[]> {
+  const hits: string[] = [];
+  await page.route('https://www.reddit.com/**', (route) => {
+    const url = route.request().url();
+    hits.push(url);
+    const cb = new URL(url).searchParams.get('jsonp');
+    if (answer === 'refuse' || !cb) return route.fulfill({ status: 403, contentType: 'text/html', body: 'blocked' });
+    return route.fulfill({ status: 200, contentType: 'application/javascript', body: `${cb}(${postListing(answer.videoId)})` });
   });
   return hits;
 }
@@ -61,7 +80,7 @@ test('a direct video link arriving via the share target becomes a muxed mp4 with
   await page.getByTestId('go').click();
   await expect(page.getByTestId('credit')).toHaveText('Direct video link');
   await expect(page.getByTestId('save')).toBeVisible({ timeout: 90_000 });
-  expect(hits.map((h) => h.split('/').pop())).toEqual(['DASHPlaylist.mpd', 'CMAF_160.mp4', 'CMAF_AUDIO_64.mp4']);
+  expect(hits.map((h) => h.split('/').pop())).toEqual(['DASHPlaylist.mpd', 'CMAF_720.mp4', 'CMAF_AUDIO_64.mp4']);
 
   const download = page.waitForEvent('download');
   await page.getByTestId('save').click();
@@ -75,15 +94,49 @@ test('a direct video link arriving via the share target becomes a muxed mp4 with
   await expect(page.getByTestId('preview')).toBeVisible();
 });
 
-test('a post link the page cannot read offers the assisted step, and pasted post data completes the loop', async ({ page }) => {
+test('a post link is read by JSONP with no user step when the browser has Reddit cookies', async ({ page }) => {
   test.setTimeout(120_000);
-  const postJson = fixture('reddit/post-video.json').toString('utf8').replace(/blke7z3ttolh1/g, 'testvid02');
+  const reddit = await routeReddit(page, { videoId: 'testvid03' });
+  const hits = await routeVredd(page, 'testvid03');
+  await page.goto('/index.html?url=' + encodeURIComponent(POST_URL + '?share_id=x&utm_source=share'));
+  await page.getByTestId('go').click();
+  await expect(page.getByTestId('credit')).toContainText('Dad jokes — u/someredditor in r/GuysBeingDudes');
+  expect(reddit).toEqual([POST_URL + '.json?limit=0&raw_json=1&jsonp=__regift_jsonp_1']);
+  await expect(page.getByTestId('save')).toBeVisible({ timeout: 90_000 });
+  expect(hits.length).toBe(3);
+  await expect(page.getByTestId('credit-line')).toHaveText('via u/someredditor on r/GuysBeingDudes — ' + POST_URL);
+});
+
+test('the quality cap picks a smaller track', async ({ page }) => {
+  test.setTimeout(120_000);
+  const hits = await routeVredd(page, 'testvid04');
+  await page.goto('/index.html?url=https%3A%2F%2Fv.redd.it%2Ftestvid04');
+  await page.getByTestId('quality').selectOption('480');
+  await page.getByTestId('go').click();
+  await expect(page.getByTestId('save')).toBeVisible({ timeout: 90_000 });
+  expect(hits.map((h) => h.split('/').pop())).toEqual(['DASHPlaylist.mpd', 'CMAF_160.mp4', 'CMAF_AUDIO_64.mp4']);
+});
+
+test('post data shared as text (select all → Share → regift) proceeds by itself', async ({ page }) => {
+  test.setTimeout(120_000);
+  await routeVredd(page, 'testvid05');
+  await page.goto('/index.html?text=' + encodeURIComponent(postListing('testvid05')));
+  await expect(page.getByTestId('credit')).toContainText('Dad jokes');
+  await expect(page.getByTestId('url')).toHaveValue(POST_URL);
+  await expect(page.getByTestId('save')).toBeVisible({ timeout: 90_000 });
+});
+
+test('when Reddit refuses the JSONP read, the assisted step is offered and pasted post data completes the loop', async ({ page }) => {
+  test.setTimeout(120_000);
+  const postJson = postListing('testvid02');
+  await routeReddit(page, 'refuse');
   const hits = await routeVredd(page, 'testvid02');
   await page.goto('/index.html?text=' + encodeURIComponent('look https://www.reddit.com/r/GuysBeingDudes/comments/1vys36f/dad_jokes/?share_id=x'));
   await page.getByTestId('go').click();
 
   const assisted = page.getByTestId('assisted');
   await expect(assisted).toBeVisible();
+  await expect(page.getByTestId('open-old-reddit')).toHaveAttribute('href', 'https://old.reddit.com/r/GuysBeingDudes/comments/1vys36f/dad_jokes/');
   await expect(page.getByTestId('open-json')).toHaveAttribute(
     'href',
     'https://www.reddit.com/r/GuysBeingDudes/comments/1vys36f/dad_jokes/.json?limit=0&raw_json=1',
@@ -109,6 +162,7 @@ test('a /s/ share link is handed to the browser with the reason', async ({ page 
 });
 
 test('a post with no video says so', async ({ page }) => {
+  await routeReddit(page, 'refuse');
   await page.goto('/index.html?url=' + encodeURIComponent('https://www.reddit.com/r/pics/comments/1photo1/a_photo/'));
   await page.getByTestId('go').click();
   await page.getByTestId('post-json').fill(fixture('reddit/post-image.json').toString('utf8'));
@@ -120,4 +174,9 @@ test('an empty link is refused before anything runs', async ({ page }) => {
   await page.goto('/index.html');
   await page.getByTestId('go').click();
   await expect(page.getByRole('status').filter({ hasText: 'Paste a link first.' })).toBeVisible();
+});
+
+test('in a browser tab, the page says to install for the share sheet', async ({ page }) => {
+  await page.goto('/index.html');
+  await expect(page.getByTestId('install-hint')).toBeVisible();
 });
