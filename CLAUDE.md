@@ -41,6 +41,12 @@ before assuming they still hold):
 - `www.reddit.com/...json` has no CORS and 403s non-browser TLS; a browser navigation
   passes (a `loid` cookie is set on first visit to old.reddit.com). A *second cold* profile
   minutes later was refused — reputation counts repeated cold bootstraps.
+- `www.reddit.com/....json?jsonp=<cb>` loaded as a `<script>` from a foreign origin FIRES
+  the callback with the full post when the browser carries Reddit cookies; cold, the
+  script errors (403). This is the PWA's no-step courier; it is not the resilient one
+  (`TODO.md` §1). CSP admits `https://www.reddit.com` in `script-src` for it, nothing else.
+- old.reddit's post title anchor is the bare `https://v.redd.it/<id>` (`a.title[href]`,
+  `.thing[data-url]`) — the no-JSON fallback: long-press → Share link → regift.
 - A `/s/` share link 307s; appending `.json` to it lands on the subreddit root, not the post.
 - Reddit's mobile web share button sends `navigator.share({ url })` with only the `/s/` link.
 
@@ -53,7 +59,7 @@ before assuming they still hold):
   modals. Mobile-first: tap targets ≥44px, no overflow at 320/360/390 (measured by element
   geometry, not `scrollWidth` alone).
 - **CSP is `default-src 'none'`** with `connect-src` limited to `'self'` + `https://v.redd.it`
-  and `script-src` carrying `'wasm-unsafe-eval'`. Widening it is a design decision, not a fix.
+  and `script-src` carrying `'wasm-unsafe-eval'` + `https://www.reddit.com` (JSONP only). Widening it is a design decision, not a fix.
 - **ffmpeg core is vendored same-origin by `build.mjs`** from the pinned npm package, never
   precached (31 MB), fetched on first mux, kept by the SW's cache-first rule.
 - No YouTube — not in code, copy, or listings.

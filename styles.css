@@ -310,3 +310,14 @@ progress {
     transition-duration: 0.001ms !important;
   }
 }
+
+.field select {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: var(--stroke) solid var(--border);
+  border-radius: var(--r-m);
+}

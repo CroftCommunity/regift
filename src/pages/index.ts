@@ -6,11 +6,12 @@
 import { mountShell, el } from '../nav';
 import { registerServiceWorker } from '../sw-register';
 import { log } from '../log';
-import { sharedUrl } from '../core/share-in';
+import { sharedUrl, sharedPostJson } from '../core/share-in';
+import { creditLine } from '../core/credit';
 import { readPost, regiftVideo, NeedsBrowserError, type Stage } from '../core/pipeline';
 import { CourierBlockedError } from '../core/ports';
 import { parsePostListing, PostParseError, type RedditPost } from '../core/reddit/post';
-import { fetchCourier } from '../adapters/web/fetch-courier';
+import { webCourier } from '../adapters/web/web-courier';
 import { ffmpegMuxer } from '../adapters/web/ffmpeg-muxer';
 import { webShareOut, saveFile } from '../adapters/web/share-out';
 
@@ -79,11 +80,27 @@ function content(): HTMLElement {
   input.placeholder = 'https://www.reddit.com/r/…/comments/…';
   input.setAttribute('data-testid', 'url');
   field.append(input);
+  const quality = el('label', 'field');
+  quality.append(el('span', 'field-label', 'Quality'));
+  const qualitySelect = el('select');
+  qualitySelect.name = 'quality';
+  qualitySelect.setAttribute('data-testid', 'quality');
+  for (const [value, label] of [
+    ['', 'Best available'],
+    ['720', 'Up to 720p (smaller file)'],
+    ['480', 'Up to 480p (smallest)'],
+  ] as const) {
+    const opt = el('option', undefined, label);
+    opt.value = value;
+    qualitySelect.append(opt);
+  }
+  quality.append(qualitySelect);
   const go = el('button', 'btn btn-primary', 'Get the video');
   go.type = 'button';
   go.setAttribute('data-testid', 'go');
-  s1.body.append(field, go);
+  s1.body.append(field, quality, go);
   s1.setState('active');
+  const maxHeight = (): number | undefined => (qualitySelect.value ? Number(qualitySelect.value) : undefined);
 
   // --- Step 2: reaching the post ---
   const s2 = step('2. Reading the post');
@@ -93,7 +110,9 @@ function content(): HTMLElement {
   root.append(s1.root, s2.root, s3.root);
 
   const params = new URLSearchParams(location.search);
-  const arrived = sharedUrl({ url: params.get('url'), text: params.get('text'), title: params.get('title') });
+  const shared = { url: params.get('url'), text: params.get('text'), title: params.get('title') };
+  const arrivedJson = sharedPostJson(shared);
+  const arrived = arrivedJson === null ? sharedUrl(shared) : null;
   if (arrived) {
     input.value = arrived;
     log.info('share target arrival', arrived);
@@ -120,10 +139,12 @@ function content(): HTMLElement {
     bar.value = 0;
     s3.body.append(bar);
     try {
+      const cap = maxHeight();
       const out = await regiftVideo({
         videoId: post.video.id,
-        courier: fetchCourier,
+        courier: webCourier,
         muxer,
+        ...(cap === undefined ? {} : { maxHeight: cap }),
         onStage: (stage) => {
           line.textContent = STAGE_WORDS[stage];
           bar.value = 0;
@@ -155,7 +176,23 @@ function content(): HTMLElement {
       save.setAttribute('data-testid', 'save');
       save.addEventListener('click', () => saveFile(file));
       actions.append(save);
-      s3.body.append(preview, actions);
+      const creditStr = creditLine(post);
+      const copy = el('button', 'btn btn-secondary', 'Copy credit');
+      copy.type = 'button';
+      copy.setAttribute('data-testid', 'copy-credit');
+      copy.title = creditStr;
+      copy.addEventListener('click', () => {
+        navigator.clipboard.writeText(creditStr).then(
+          () => {
+            copy.textContent = 'Credit copied';
+          },
+          (err: unknown) => log.warn('clipboard refused', err),
+        );
+      });
+      actions.append(copy);
+      const creditText = el('p', 'credit', creditStr);
+      creditText.setAttribute('data-testid', 'credit-line');
+      s3.body.append(preview, actions, creditText);
       s3.setState('done');
     } catch (err) {
       log.error('regift failed', err);
@@ -172,16 +209,18 @@ function content(): HTMLElement {
     hint.setAttribute('data-testid', 'assisted');
     hint.append(
       document.createTextNode(
-        'This page cannot read Reddit directly, but your browser can. One copy and paste bridges the gap:',
+        'regift could not read this post by itself (your browser is not signed in to Reddit, or it blocks third-party cookies). Your browser can still reach it. Quickest way:',
       ),
     );
-    const steps = el('ol');
-    steps.append(
-      el('li', undefined, 'Open the post data in a new tab (the button below).'),
-      el('li', undefined, 'Select all of the text there and copy it.'),
-      el('li', undefined, 'Come back and paste it here.'),
+    const quick = el('ol');
+    quick.append(
+      el('li', undefined, 'Open the post on old Reddit (the first button).'),
+      el('li', undefined, 'Long-press the post title, choose Share link, and pick regift.'),
     );
-    hint.append(steps);
+    const slow = el('p', undefined, 'Or, for a credit line too: open the post data (the second button), select all, then share the selection to regift — or copy it and paste it below.');
+    hint.append(quick, slow);
+    const oldReddit = openLink(jsonUrl.replace('https://www.reddit.com/', 'https://old.reddit.com/').replace(/\.json\?.*$/, ''), 'Open on old Reddit');
+    oldReddit.setAttribute('data-testid', 'open-old-reddit');
     const open = openLink(jsonUrl, 'Open the post data');
     open.setAttribute('data-testid', 'open-json');
     const field = el('label', 'field');
@@ -210,18 +249,27 @@ function content(): HTMLElement {
             : 'That is not valid JSON. Select all, then copy — partial text will not parse.';
       }
     });
-    s2.body.append(hint, open, field, use, err);
+    s2.body.append(hint, oldReddit, open, field, use, err);
   }
 
   go.addEventListener('click', () => {
     reset();
+    const pastedJson = sharedPostJson({ text: input.value });
+    if (pastedJson !== null) {
+      try {
+        void produce(parsePostListing(pastedJson));
+      } catch (e) {
+        status(s2.body, e instanceof PostParseError ? 'That does not look like post data.' : String(e), 'error');
+      }
+      return;
+    }
     const url = sharedUrl({ url: input.value });
     if (!url) {
       status(s2.body, 'Paste a link first.', 'error');
       return;
     }
     s2.setState('active');
-    void readPost(url, fetchCourier).then(produce, (err: unknown) => {
+    void readPost(url, webCourier).then(produce, (err: unknown) => {
       if (err instanceof NeedsBrowserError) {
         const hint = el('div', 'hint');
         hint.setAttribute('data-testid', 'needs-browser');
@@ -242,7 +290,34 @@ function content(): HTMLElement {
     });
   });
 
+  if (!isInstalled()) {
+    const hint = el('p', 'hint', 'Tip: install regift (browser menu → Install app) and it appears in the share sheet, so you can share a post straight to it.');
+    hint.setAttribute('data-testid', 'install-hint');
+    root.append(hint);
+  }
+
+  if (arrivedJson !== null) {
+    try {
+      const post = parsePostListing(arrivedJson);
+      if (post.permalink) input.value = post.permalink;
+      log.info('share target arrival: post data');
+      void produce(post);
+    } catch (e) {
+      log.warn('shared text looked like JSON but is not a post listing', e);
+      status(s2.body, 'The shared text is not Reddit post data. Select all of the post-data page, then share it.', 'error');
+    }
+  }
+
   return root;
+}
+
+/** Standalone = launched from the home screen; only then does the share target exist. */
+function isInstalled(): boolean {
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches;
+  } catch {
+    return false;
+  }
 }
 
 const app = document.getElementById('app');

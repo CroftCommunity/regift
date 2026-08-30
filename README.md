@@ -16,17 +16,21 @@ share target only registers for an *installed* PWA).
 Reddit post ──share──► regift ──► read post ──► fetch tracks ──► mux ──► share sheet
                                    │              (v.redd.it,    (ffmpeg.wasm,
                                    │               CORS-open)     on-device)
-                                   └── a page cannot read reddit.com itself:
-                                       ONE copy-and-paste, done by you, bridges it
+                                   └── JSONP with your browser's Reddit cookies; if refused,
+                                       an assisted route (old Reddit long-press, or share the data)
 ```
 
 - **Share in.** The Web Share Target receives `url`, `text` or `title`; the first http(s)
   link in any of them is the post.
-- **The one assisted step.** reddit.com sends no CORS headers, so a web page cannot read
-  the post's JSON — but your browser can. regift opens the post data in a tab (one link),
-  you select-all, copy, and paste it back. A direct `v.redd.it/<id>` link needs no such
-  step. A `/s/` share link from Reddit's own share button is a redirect only a browser can
-  follow: open it, then share the post from *the browser's* menu instead.
+- **Reading the post.** reddit.com sends no CORS headers, so a page cannot `fetch` the
+  post's JSON — but Reddit still honours `?jsonp=`, and a `<script>` load carries your
+  browser's own Reddit cookies, so regift reads the post with no step from you when you are
+  signed in to Reddit in that browser. When that is refused (signed out, third-party cookies
+  blocked), the assisted step offers the quickest route — open on old Reddit, long-press the
+  title, Share link to regift (the title *is* the `v.redd.it` link) — or the post data:
+  select all, share the selection to regift, or paste it. A `/s/` link from Reddit's own
+  share button is a redirect only a browser can follow: open it, then share from *the
+  browser's* menu instead.
 - **Everything after that is automatic** and runs in the page: the DASH manifest and the
   best video + audio tracks come from `v.redd.it` (which is CORS-open, unsigned), and
   ffmpeg.wasm stream-copies them into one MP4 (no re-encode).

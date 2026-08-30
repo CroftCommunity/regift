@@ -21,6 +21,7 @@ for (const width of [320, 360, 390]) {
   }
   test(`no horizontal overflow: assisted state at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 780 });
+    await page.route('https://www.reddit.com/**', (route) => route.fulfill({ status: 403, body: 'blocked' }));
     await page.goto('/index.html?url=' + encodeURIComponent('https://www.reddit.com/r/GuysBeingDudes/comments/1vys36f/dad_jokes/'));
     await page.getByTestId('go').click();
     await expect(page.getByTestId('assisted')).toBeVisible();

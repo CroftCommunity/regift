@@ -20,3 +20,22 @@ export function sharedUrl(input: SharedInput): string | null {
   }
   return null;
 }
+
+/**
+ * Post data arriving through the share target: from the post-data tab, select all
+ * and SHARE the selection to regift, and Android delivers it as `text`. Only a JSON
+ * array or object counts; a link, words, or a partial selection is null.
+ */
+export function sharedPostJson(input: SharedInput): unknown {
+  for (const field of [input.text, input.url, input.title]) {
+    if (typeof field !== 'string') continue;
+    const trimmed = field.trim();
+    if (!trimmed.startsWith('[') && !trimmed.startsWith('{')) continue;
+    try {
+      return JSON.parse(trimmed) as unknown;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
