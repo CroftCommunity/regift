@@ -4,6 +4,10 @@ import { parseDashManifest, pickTracks, manifestUrl, trackUrl, DashParseError } 
 
 // A real manifest, captured 2026-08-30 from v.redd.it (unsigned URL, 200, CORS-open).
 const mpd = readFileSync(new URL('../fixtures/reddit/dash-manifest.mpd', import.meta.url), 'utf8');
+// A 2019 video's manifest, captured 2026-09-13 from v.redd.it (same CDN, also unsigned
+// and CORS-open): no contentType on the AdaptationSet, mimeType on each Representation,
+// bare DASH_<height> and `audio` file names.
+const mpd2019 = readFileSync(new URL('../fixtures/reddit/dash-manifest-2019.mpd', import.meta.url), 'utf8');
 
 describe('parseDashManifest', () => {
   it('lists every video and audio representation with its file name', () => {
@@ -19,6 +23,18 @@ describe('parseDashManifest', () => {
       ['CMAF_AUDIO_64.mp4', 67461],
       ['CMAF_AUDIO_128.mp4', 131422],
     ]);
+  });
+
+  it('reads a 2019 manifest, where the kind lives on the representation, not the set', () => {
+    const tracks = parseDashManifest(mpd2019);
+    expect(tracks.filter((t) => t.kind === 'video').map((t) => [t.file, t.height])).toEqual([
+      ['DASH_720', 720],
+      ['DASH_480', 480],
+      ['DASH_360', 360],
+      ['DASH_240', 240],
+    ]);
+    expect(tracks.filter((t) => t.kind === 'audio').map((t) => [t.file, t.bandwidth])).toEqual([['audio', 129810]]);
+    expect(pickTracks(tracks, { maxHeight: 480 }).video.file).toBe('DASH_480');
   });
 
   it('fails loud when there is no video representation', () => {

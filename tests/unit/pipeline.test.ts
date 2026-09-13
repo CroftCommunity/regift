@@ -65,6 +65,12 @@ describe('readPost', () => {
   it('rejects a URL it does not understand', async () => {
     await expect(readPost('https://example.com/', fakeCourier({ readsReddit: true }))).rejects.toThrow(/not a reddit/i);
   });
+
+  it('says a reddit.com link is a listing, not a post — the address the share sheet sent from a feed (seen 2026-09-13)', async () => {
+    await expect(
+      readPost('https://www.reddit.com/r/UNBGBBIIVCHIDCTIICBG/?screen_view_count=1&ext-referrer=DIRECT&t=all', fakeCourier({ readsReddit: true })),
+    ).rejects.toThrow(/reddit\.com link, but not to a post/i);
+  });
 });
 
 describe('regiftVideo', () => {

@@ -8,6 +8,8 @@ export type RedditLink =
   | { readonly kind: 'share'; readonly url: string }
   | { readonly kind: 'post'; readonly canonical: string }
   | { readonly kind: 'video'; readonly videoId: string }
+  /** On a Reddit host but not a post: a subreddit, a feed, a profile. */
+  | { readonly kind: 'listing'; readonly url: string }
   | { readonly kind: 'unknown'; readonly url: string };
 
 const REDDIT_HOSTS = new Set(['www.reddit.com', 'reddit.com', 'old.reddit.com', 'new.reddit.com', 'm.reddit.com']);
@@ -27,7 +29,7 @@ export function classifyRedditLink(url: string): RedditLink {
   if (SHARE_PATH.test(u.pathname)) return { kind: 'share', url };
   const post = POST_PATH.exec(u.pathname);
   if (post) return { kind: 'post', canonical: `https://www.reddit.com${post[0].replace(/\/$/, '')}/` };
-  return { kind: 'unknown', url };
+  return { kind: 'listing', url };
 }
 
 /** The listing-only JSON for a canonical post URL: no comment tree, unescaped strings. */

@@ -5,6 +5,15 @@ landing *is* releasing: sections are months, each entry dated by its landing. Pe
 `CroftC/.claude/CHANGELOGS.md`, the branch that changes something a user runs adds its
 entry here before it lands.
 
+## 2026-09
+
+- 2026-09-13 **older Reddit videos:** a video posted in 2019 or earlier failed with "no video
+  representation" — its manifest has the same tracks under an older shape (the kind on each
+  representation, bare `DASH_720` / `audio` names), which the parser now reads; the tracks
+  answer unsigned and CORS-open like current ones. Also, sharing from a feed can send the
+  subreddit's address instead of the post's; regift now says that is a reddit.com link but
+  not a post, rather than "not a reddit post or video link".
+
 ## 2026-08
 
 - 2026-08-30 **the credit rides inside the file:** images carry it as EXIF (JPEG, WebP),

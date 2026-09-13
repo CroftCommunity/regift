@@ -32,6 +32,9 @@ export async function readPost(url: string, courier: Courier): Promise<RedditPos
       if (!courier.canRead(jsonUrl)) throw new CourierBlockedError(jsonUrl);
       return parsePostListing(JSON.parse(await courier.text(jsonUrl)));
     }
+    case 'listing':
+      // Seen 2026-09-13: sharing from a feed sent the subreddit address, not the post's.
+      throw new Error(`a reddit.com link, but not to a post (a subreddit or feed?) — open the post itself, then share: ${link.url}`);
     case 'unknown':
       throw new Error(`not a reddit post or video link: ${link.url}`);
   }
