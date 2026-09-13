@@ -37,7 +37,12 @@ before assuming they still hold):
 
 - `v.redd.it` sends `access-control-allow-origin: *`; the DASH manifest and every
   `CMAF_*.mp4` track answer 200 **unsigned**. `DASH_*.mp4` names 403. `packaged-media.redd.it`
-  (pre-muxed MP4s) sends no CORS.
+  (pre-muxed MP4s) sends no CORS. Videos from 2019 and earlier (measured 2026-09-13) have a
+  manifest with no `contentType` on the AdaptationSet, `mimeType` on each Representation and
+  bare names (`DASH_720`, `DASH_2_4_M`, `audio`); those files also answer unsigned, `ACAO *`.
+- Chrome's share sheet, used from a Reddit feed, can send the **subreddit** address
+  (`/r/<sub>/?screen_view_count=1&ext-referrer=DIRECT&t=all`), not the post's (seen
+  2026-09-13); regift names that case instead of calling it "not a reddit link".
 - `www.reddit.com/...json` has no CORS and 403s non-browser TLS; a browser navigation
   passes (a `loid` cookie is set on first visit to old.reddit.com). A *second cold* profile
   minutes later was refused — reputation counts repeated cold bootstraps.

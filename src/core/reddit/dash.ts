@@ -4,8 +4,12 @@
 // JSON attaches (`?a=…`), and v.redd.it sends `access-control-allow-origin: *`.
 // That is the whole reason a plain page can do this part itself.
 //
-// The parser is a strict regex over the one manifest shape Reddit emits (no
-// DOMParser, so the core stays platform-free and unit-testable in node).
+// The parser is a strict regex over the two manifest shapes Reddit serves (no
+// DOMParser, so the core stays platform-free and unit-testable in node). Current
+// transcodes put `contentType` on the AdaptationSet and name tracks `CMAF_*.mp4`;
+// videos from 2019 and earlier (re-measured 2026-09-13, same CDN, same unsigned
+// 200 + `access-control-allow-origin: *`) have a bare AdaptationSet, `mimeType`
+// on each Representation, and bare names — `DASH_720`, `DASH_2_4_M`, `audio`.
 
 export interface DashTrack {
   readonly kind: 'video' | 'audio';
@@ -28,13 +32,20 @@ const REPRESENTATION = /<Representation\b([^>]*)>([\s\S]*?)<\/Representation>/g;
 const attr = (attrs: string, name: string): string | null =>
   new RegExp(`\\b${name}="([^"]*)"`).exec(attrs)?.[1] ?? null;
 
+/** 'video' | 'audio' from a contentType ("video") or a mimeType ("video/mp4"); null otherwise. */
+const trackKind = (value: string | null): DashTrack['kind'] | null => {
+  const head = value?.split('/')[0];
+  return head === 'video' || head === 'audio' ? head : null;
+};
+
 export function parseDashManifest(xml: string): readonly DashTrack[] {
   const tracks: DashTrack[] = [];
   for (const set of xml.matchAll(ADAPTATION)) {
-    const kind = attr(set[1] ?? '', 'contentType');
-    if (kind !== 'video' && kind !== 'audio') continue;
+    const setKind = trackKind(attr(set[1] ?? '', 'contentType'));
     for (const rep of (set[2] ?? '').matchAll(REPRESENTATION)) {
       const attrs = rep[1] ?? '';
+      const kind = setKind ?? trackKind(attr(attrs, 'mimeType'));
+      if (!kind) continue;
       const file = /<BaseURL>([^<]+)<\/BaseURL>/.exec(rep[2] ?? '')?.[1];
       if (!file) continue;
       const height = attr(attrs, 'height');

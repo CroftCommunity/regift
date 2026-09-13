@@ -37,6 +37,8 @@ for (const theme of ['light', 'dark'] as const) {
         /* private mode */
       }
     }, theme);
+    // Reddit refuses the JSONP read, so the assisted step appears — stubbed, not the live network.
+    await page.route('https://www.reddit.com/**', (route) => route.fulfill({ status: 403, body: 'blocked' }));
     await page.goto('/index.html?url=' + encodeURIComponent('https://www.reddit.com/r/a/comments/1abc/t/'));
     await page.getByTestId('go').click();
     await expect(page.getByTestId('assisted')).toBeVisible();

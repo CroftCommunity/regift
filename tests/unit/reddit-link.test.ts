@@ -44,11 +44,16 @@ describe('classifyRedditLink', () => {
     expect(classifyRedditLink('https://v.redd.it/blke7z3ttolh1')).toEqual({ kind: 'video', videoId: 'blke7z3ttolh1' });
   });
 
-  it('anything else is unknown, not a guess', () => {
+  it('a Reddit host that is not a post is a listing, named as such', () => {
     expect(classifyRedditLink('https://www.reddit.com/r/pics/')).toEqual({
-      kind: 'unknown',
+      kind: 'listing',
       url: 'https://www.reddit.com/r/pics/',
     });
+    // The address Chrome's share sheet sent from a feed, 2026-09-13.
+    expect(classifyRedditLink('https://www.reddit.com/r/pics/?screen_view_count=1&ext-referrer=DIRECT&t=all').kind).toBe('listing');
+  });
+
+  it('anything else is unknown, not a guess', () => {
     expect(classifyRedditLink('https://example.com/watch')).toEqual({ kind: 'unknown', url: 'https://example.com/watch' });
   });
 });
