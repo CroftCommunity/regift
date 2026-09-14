@@ -56,7 +56,10 @@ Phases, each leaving the gate green:
    mobile-fit (element geometry), subpath, a11y both themes incl. the assisted state.
 4. **Ship.** Create `CroftCommunity/regift`, Pages from `gh-pages`, PR, land.
 5. **Device (owed).** Install on the Pixel from Pages; share a post from the mobile web;
-   Photos receives a clip with sound. Then the large-input measurement (TODO §2). [device done 2026-08-30: Pixel, Chrome WebAPK; a Brave install never appeared in the share sheet; sharing the post from Chrome's ⋮ menu to regift produced the video — owner: "worked well". Large-input measurement still open (TODO §2)]
+   Photos receives a clip with sound. Then the large-input measurement (TODO §2).
+   [device done 2026-08-30: android=pixel] — Chrome WebAPK; a Brave install never appeared
+   in the share sheet; sharing the post from Chrome's ⋮ menu to regift produced the video —
+   owner: "worked well". Large-input measurement still open (TODO §2, tagged there).
 
 ## Reasoning
 

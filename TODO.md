@@ -32,6 +32,7 @@ run only exercised short clips. Nobody has measured a large input in Android Sys
 v.redd.it post on the Pixel; record wall-clock and whether it survives. Outcome decides:
 input cap, mandatory trim, or a native ffmpeg in the app. A laptop cannot stand in — the
 2026-08-30 probing got the laptop's IP refused by Reddit within hours (see E158).
+[device: android]
 `[device: android]`
 
 ## 2a. Verify Google Photos shows the embedded credit
