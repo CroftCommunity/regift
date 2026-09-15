@@ -32,8 +32,17 @@ run only exercised short clips. Nobody has measured a large input in Android Sys
 v.redd.it post on the Pixel; record wall-clock and whether it survives. Outcome decides:
 input cap, mandatory trim, or a native ffmpeg in the app. A laptop cannot stand in — the
 2026-08-30 probing got the laptop's IP refused by Reddit within hours (see E158).
-[device: android]
-`[device: android]`
+[device done 2026-09-14: android=samsung]
+
+**Result (2026-09-14, Samsung SM-S947U1, Chrome 152, the vendored single-thread 0.12.10
+core served over `adb reverse`, synthetic clips):** a 45 MB 4-minute 720p track + 4 MB
+audio muxed by stream copy in **139 ms** (49 MB out); a 60-second part cut from the same pair
+in ~40 ms (12.3 MB), from the start or from 2:00 in, when `-t` is an OUTPUT option — placed
+before an input it cut that track only and the audio ran the full four minutes. The wasm
+heap took a **218 MB** input file plus its output without failing. Outcome: no input cap,
+no mandatory trim, no native ffmpeg — the mux is not the cost. A real v.redd.it post on a
+phone is still the honest end-to-end run, but the size question is answered. The encode
+ceiling measured the same night is §6.
 
 ## 2a. Verify Google Photos shows the embedded credit
 
@@ -61,3 +70,39 @@ gram.social post link to probe. If E157 closes the door, Pixelfed becomes a line
 
 Out of scope until the Reddit loop has a courier that needs no assistance. yt-dlp's
 extractors are the living reference; definitions should be data, not code.
+
+## 6. Shrink a local mp4 for a destination's size limit
+
+**Decided 2026-09-14 from measurement, not yet planned.** A file shared INTO regift (a
+`POST` / `multipart/form-data` share target with a `files` entry, the service worker
+stashing the file and redirecting — Android Chrome only, like today's link share) is
+brought under a size budget the person names, two ways: **parts** (cut at keyframes by
+stream copy, each under budget, `1/N … N/N`) or **one file** (re-encode to H.264 at the
+bitrate that fits, resolution capped at 360p/720p). The core reads duration, dimensions,
+codec and bitrate from the container (`mvhd`/`tkhd`/`stsd`, platform-free) and states the
+verdict and the ETA BEFORE any work: a stretch is a number the person sees, not a spinner.
+A `Shrinker` port beside `Muxer` — the Muxer's contract stays "stream copy only". No new
+dependency: the vendored core already carries libx264 (its configure string says so).
+
+**Encode ceiling (2026-09-14, same phone and core as §2; 20 s clips, 600 frames; "easy" =
+testsrc2, "noisy" = testsrc2 + temporal noise at a real-world bitrate, "noise" = pure noise,
+92 MB at 360p — the floor no real footage reaches):**
+
+| input → x264 | ultrafast | veryfast | medium |
+|---|---|---|---|
+| 360p MPEG-4 Part 2, easy | 392 fps | 122 fps | 43 fps |
+| 360p MPEG-4 Part 2, noisy | 328 fps | 110 fps | — |
+| 360p, pure noise | 160 fps | 50 fps | — |
+| 720p H.264, noisy | 86 fps | 29 fps | — |
+| 720p, pure noise | 27 fps | 10.5 fps | — |
+| 720p → 360p downscale, noisy | 114 fps | — | — |
+
+Core load 0.8 s once cached. So the 44.83 MB 360p clip that prompted this (8–12 minutes,
+15–22k frames) is **2–4 minutes on veryfast, under a minute on ultrafast** — comfortable;
+720p veryfast is the first rung that is a wait, and `medium` is off the table. Calibrate
+per device with a two-second run and keep the rate locally; the ETA is arithmetic from it.
+Not measured: real camera footage (between "noisy" and "noise"), a background tab, a
+throttled phone. WebCodecs (hardware encode) is the rung after this one, only if a
+measured device says wasm is too slow — it needs a demux/remux in JS (§3 becomes
+load-bearing). The workspace architecture card widens from "a shared post" to "a shared
+post or file" when this lands. [device: android] for the real-footage run (since 2026-09-14).
