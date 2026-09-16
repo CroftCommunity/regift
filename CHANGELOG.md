@@ -7,6 +7,18 @@ entry here before it lands.
 
 ## 2026-09
 
+- 2026-09-16 **Reddit pictures get in — share the picture, not the link:** regift now
+  receives the FILE itself from the share sheet, not only a link. Open a picture in Reddit,
+  tap Share, pick regift, and it comes across with nothing fetched and nothing leaving your
+  device; share the post link alongside it and the credit still rides inside the file. This
+  is the only route there is: re-measured 2026-09-16, `i.redd.it` (and `preview.redd.it`,
+  `external-preview.redd.it`) send no CORS header at all, while `v.redd.it` sends `*` —
+  Reddit's own player needs CORS for video and never needed it for pictures — so no page
+  anywhere can fetch a Reddit picture, and the page now says so and points at the share
+  route instead of promising an app. Video, galleries and the other sources are unchanged.
+  **One-off:** this ships a new share target, which only the updated service worker knows;
+  until you tap **Update** (or reopen regift), a file share can arrive before the worker
+  does and be lost. Sharing it again after the update works.
 - 2026-09-13 **older Reddit videos:** a video posted in 2019 or earlier failed with "no video
   representation" — its manifest has the same tracks under an older shape (the kind on each
   representation, bare `DASH_720` / `audio` names), which the parser now reads; the tracks
