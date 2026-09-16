@@ -185,10 +185,11 @@ test('a gallery becomes three image files from i.redd.it, in order', async ({ pa
   await expect(page.getByTestId('credit')).toContainText('Three views — u/galleryposter on r/pics');
 });
 
-test('when i.redd.it refuses the page, the words say Reddit pictures need the app', async ({ page }) => {
+test('when i.redd.it refuses the page, the words point at the share route that works', async ({ page }) => {
   await page.route('https://i.redd.it/**', (route) => route.abort('failed'));
   await page.goto('/index.html?text=' + encodeURIComponent(fixture('reddit/post-image.json').toString('utf8')));
-  await expect(page.getByTestId('media-error')).toContainText('Pictures from Reddit need the regift app');
+  await expect(page.getByTestId('media-error')).toContainText('sends no CORS header at all');
+  await expect(page.getByTestId('media-error')).toContainText('tap Share, and pick regift');
 });
 
 test('an empty link is refused before anything runs', async ({ page }) => {
@@ -211,4 +212,140 @@ test('Start over purges a try in progress and the shared query in one tap', asyn
   await expect(page).toHaveURL(/\/index\.html$/);
   await expect(page.getByTestId('url')).toHaveValue('');
   await expect(page.getByTestId('assisted')).toHaveCount(0);
+});
+
+// --- The POST file share target -------------------------------------------
+//
+// Share the PICTURE, not the link. Measured 2026-09-16 (curl, Origin set to the
+// deploy origin): i.redd.it, preview.redd.it and external-preview.redd.it send
+// NO access-control-allow-origin header, while v.redd.it sends `*` and answers
+// an OPTIONS preflight — so no page anywhere can fetch a Reddit picture, and
+// the only way in is the OS handing the bytes over. That share is a POST, no
+// static host answers a POST, so the service worker is the endpoint.
+//
+// Playwright cannot raise the Android share sheet, so these drive the worker
+// directly: register it, wait for it to control the page, then POST the form it
+// would receive and follow the redirect it answers with.
+test.describe('the share target receives files', () => {
+  // The rest of the suite blocks workers (they bypass page.route fixtures);
+  // here the worker IS the code under test.
+  test.use({ serviceWorkers: 'allow' });
+
+  const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+  /** Load the page and wait until its worker is installed AND controlling. */
+  async function controlled(page: Page): Promise<void> {
+    await page.goto('/index.html');
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 30_000 });
+  }
+
+  /** POST the share the OS would post, and return where the worker sent us. */
+  async function postShare(
+    page: Page,
+    files: readonly { readonly name: string; readonly type: string; readonly b64?: string }[],
+    fields: Readonly<Record<string, string>> = {},
+  ): Promise<string> {
+    return page.evaluate(
+      async ([files, fields]) => {
+        const form = new FormData();
+        for (const [key, value] of Object.entries(fields as Record<string, string>)) form.append(key, value);
+        for (const f of files as { name: string; type: string; b64?: string }[]) {
+          const bytes = Uint8Array.from(atob(f.b64 ?? 'cmVnaWZ0'), (c) => c.charCodeAt(0));
+          form.append('media', new File([bytes], f.name, { type: f.type }));
+        }
+        const res = await fetch('share-target', { method: 'POST', body: form });
+        return res.url;
+      },
+      [files, fields] as const,
+    );
+  }
+
+  test('a shared picture is delivered with nothing leaving the origin', async ({ page }) => {
+    await controlled(page);
+    const outside: string[] = [];
+    page.on('request', (req) => {
+      const url = req.url();
+      // A blob: preview URL is the page reading its own file, not a network read.
+      if (/^https?:\/\//.test(url) && !url.includes('localhost')) outside.push(url);
+    });
+
+    const landing = await postShare(page, [{ name: 'reddit-cat.png', type: 'image/png', b64: PNG_B64 }]);
+    expect(new URL(landing).search).toBe('?shared-media=1');
+
+    await page.goto(landing);
+    await expect(page.getByTestId('save')).toBeVisible();
+    await expect(page.getByTestId('result')).toHaveCount(1);
+    await expect(page.getByRole('status').filter({ hasText: 'reddit-cat.png' })).toBeVisible();
+    // No post behind the file, so nothing pretends there is a credit.
+    await expect(page.getByTestId('credit-line')).toHaveCount(0);
+    await expect(page.getByTestId('copy-credit')).toHaveCount(0);
+    expect(outside).toEqual([]);
+  });
+
+  test('a mixed share keeps the media in order and drops what is not media', async ({ page }) => {
+    await controlled(page);
+    const landing = await postShare(page, [
+      { name: 'first.png', type: 'image/png', b64: PNG_B64 },
+      { name: 'notes.txt', type: 'text/plain' },
+      { name: 'second.mp4', type: 'video/mp4' },
+    ]);
+    expect(new URL(landing).search).toBe('?shared-media=2');
+
+    await page.goto(landing);
+    await expect(page.getByTestId('save-2')).toBeVisible();
+    await expect(page.getByTestId('result')).toHaveCount(2);
+    await expect(page.getByTestId('result').nth(0).locator('img.preview')).toHaveAttribute('alt', 'first.png');
+    await expect(page.getByTestId('result').nth(1).locator('video.preview')).toHaveCount(1);
+  });
+
+  test('a file-less share still arrives as a link, exactly as before', async ({ page }) => {
+    await controlled(page);
+    const landing = await postShare(page, [], { url: 'https://v.redd.it/testvid09' });
+    expect(new URL(landing).search).toBe('?url=https%3A%2F%2Fv.redd.it%2Ftestvid09');
+
+    await page.goto(landing);
+    await expect(page.getByTestId('url')).toHaveValue('https://v.redd.it/testvid09');
+    await expect(page.getByTestId('result')).toHaveCount(0);
+  });
+
+  // A share can carry BOTH the picture and the link it came from; the link is
+  // what becomes the credit, and the credit is written into the file itself.
+  test('a picture shared with its link is credited from the post', async ({ page }) => {
+    await controlled(page);
+    await routeReddit(page, { videoId: 'testvid08' });
+    const landing = await postShare(page, [{ name: 'dad-jokes.png', type: 'image/png', b64: PNG_B64 }], { url: POST_URL });
+    expect(new URL(landing).search).toBe('?shared-media=1&url=' + encodeURIComponent(POST_URL));
+
+    await page.goto(landing);
+    await expect(page.getByTestId('credit')).toContainText('Dad jokes — u/someredditor on r/GuysBeingDudes');
+    await expect(page.getByTestId('credit-line')).toHaveText('via u/someredditor on r/GuysBeingDudes — ' + POST_URL);
+    const download = page.waitForEvent('download');
+    await page.getByTestId('save').click();
+    const out = readFileSync(await (await download).path());
+    // The credit rides inside the file (PNG iTXt), in a file regift never fetched.
+    expect(out.toString('latin1')).toContain('via u/someredditor on r/GuysBeingDudes');
+  });
+
+  test('a refused read costs the credit, not the file', async ({ page }) => {
+    await controlled(page);
+    await routeReddit(page, 'refuse');
+    const landing = await postShare(page, [{ name: 'orphan.png', type: 'image/png', b64: PNG_B64 }], { url: POST_URL });
+
+    await page.goto(landing);
+    await expect(page.getByTestId('save')).toBeVisible();
+    await expect(page.getByTestId('credit-line')).toHaveCount(0);
+    await expect(page.getByRole('status').filter({ hasText: 'Could not read that post for a credit line' })).toBeVisible();
+  });
+
+  test('a handled share is taken, not borrowed — a reload does not re-deliver it', async ({ page }) => {
+    await controlled(page);
+    const landing = await postShare(page, [{ name: 'once.png', type: 'image/png', b64: PNG_B64 }]);
+    await page.goto(landing);
+    await expect(page.getByTestId('save')).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByTestId('media-error')).toContainText('a share is delivered once');
+    await expect(page.getByTestId('result')).toHaveCount(0);
+  });
 });

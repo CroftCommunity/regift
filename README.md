@@ -13,7 +13,7 @@ Internet install a home-screen shortcut, which never appears in the share sheet 
 2026-08-30 — the first install was from Brave and regift was not offered). Once installed
 from Chrome, you can share to it from any app, Brave included.
 
-## What works today (2026-08-30)
+## What works today (2026-09-16)
 
 ```
 Reddit post ──share──► regift ──► read post ──► fetch tracks ──► mux ──► share sheet
@@ -23,8 +23,12 @@ Reddit post ──share──► regift ──► read post ──► fetch trac
                                        an assisted route (old Reddit long-press, or share the data)
 ```
 
-- **Share in.** The Web Share Target receives `url`, `text` or `title`; the first http(s)
-  link in any of them is the post.
+- **Share in.** The Web Share Target receives `url`, `text` or `title` — the first http(s)
+  link in any of them is the post — **or the media file itself**. A file share has to be a
+  POST (`multipart/form-data`), and no static host answers a POST, so the service worker is
+  the endpoint: it takes the share, parks the files, and redirects to the page, which
+  collects them. A share that carries both a picture and its link gets the credit from the
+  link.
 - **Reading the post.** reddit.com sends no CORS headers, so a page cannot `fetch` the
   post's JSON — but Reddit still honours `?jsonp=`, and a `<script>` load carries your
   browser's own Reddit cookies, so regift reads the post with no step from you when you are
@@ -37,11 +41,22 @@ Reddit post ──share──► regift ──► read post ──► fetch trac
 - **Everything after that is automatic** and runs in the page: the DASH manifest and the
   best video + audio tracks come from `v.redd.it` (which is CORS-open, unsigned), and
   ffmpeg.wasm stream-copies them into one MP4 (no re-encode).
-- **Reddit pictures** are parsed (an image post, a gallery in order) but `i.redd.it`
-  **refuses a page** — measured 2026-08-30 on the Pixel and confirmed from a second
-  network: the fetch is CORS-blocked, so regift says pictures from Reddit need the app.
-  The parsing is not wasted: the native courier gets Reddit pictures for free the day
-  the app lands (`TODO.md` §1).
+- **Reddit pictures: share the picture, not the link.** Measured 2026-09-16 (header probe
+  with the deploy origin, and on-device before that): `i.redd.it`, `preview.redd.it` and
+  `external-preview.redd.it` send **no `access-control-allow-origin` header at all**
+  (`preview.*` also 403s a hotlink), while `v.redd.it` sends `access-control-allow-origin: *`
+  and answers an OPTIONS preflight. Same CDN (`server: snooserv`), opposite policy — because
+  Reddit's own player reads DASH segments over XHR/MSE, which *requires* CORS, so the video
+  host had to be opened up, while their pictures only ever render in `<img>`, which never
+  requires CORS. regift's video support rides on infrastructure Reddit built for itself.
+
+  So no page on any origin can fetch a Reddit picture — not a block to route around, a header
+  that does not exist (`<img>`+canvas taints, `mode: 'no-cors'` gives an opaque body, JSONP is
+  text-only). The way in is the share target: open the picture in Reddit, tap **Share**, pick
+  **regift**, and the OS hands the bytes over — no cross-origin read happens, so CORS never
+  applies. Share the post link alongside it and the credit still comes from the post. Image
+  posts and galleries are still parsed from a link, which the native courier will fetch
+  directly the day the app lands (`TODO.md` §1).
 - **Bluesky, Mastodon, Tumblr** need no assisted step at all: their reads are public and
   CORS-open (Bluesky's original blobs come from the PDS; Tumblr's legacy JSON read is loaded
   as a script). Galleries come out as several files. **Pixelfed** is recognised but refused

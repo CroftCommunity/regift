@@ -24,17 +24,30 @@ test('theme toggle flips the document theme', async ({ page }) => {
   expect(['light', 'dark']).toContain(after);
 });
 
-test('the manifest declares a share target that lands on the home page', async ({ request }) => {
+// A share that carries FILES cannot be a GET — the OS posts multipart/form-data
+// — and no static host answers a POST, so the action points at the service
+// worker's own route (src/sw-nav.ts). This is what makes a Reddit picture
+// reachable at all: i.redd.it sends no CORS header, so the bytes have to come
+// from the OS rather than from a fetch (measured 2026-09-16).
+test('the manifest declares a POST file share target aimed at the worker route', async ({ request }) => {
   const res = await request.get('/manifest.webmanifest');
   expect(res.ok()).toBe(true);
   const manifest = (await res.json()) as {
-    share_target: { action: string; method: string; enctype: string; params: Record<string, string> };
+    share_target: {
+      action: string;
+      method: string;
+      enctype: string;
+      params: { title: string; text: string; url: string; files: { name: string; accept: string[] }[] };
+    };
     icons: { src: string; sizes: string; type: string; purpose?: string }[];
   };
-  expect(manifest.share_target.action).toBe('index.html');
-  expect(manifest.share_target.method).toBe('GET');
-  expect(manifest.share_target.enctype).toBe('application/x-www-form-urlencoded');
-  expect(manifest.share_target.params).toEqual({ title: 'title', text: 'text', url: 'url' });
+  expect(manifest.share_target.action).toBe('share-target');
+  expect(manifest.share_target.method).toBe('POST');
+  expect(manifest.share_target.enctype).toBe('multipart/form-data');
+  expect(manifest.share_target.params.title).toBe('title');
+  expect(manifest.share_target.params.text).toBe('text');
+  expect(manifest.share_target.params.url).toBe('url');
+  expect(manifest.share_target.params.files).toEqual([{ name: 'media', accept: ['image/*', 'video/*'] }]);
 });
 
 // Chrome on Android mints a WebAPK — the only install that registers a share

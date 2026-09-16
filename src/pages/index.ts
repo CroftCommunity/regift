@@ -5,6 +5,7 @@
 // sign-in, a post with no media — and turns each into words and one next action.
 import { mountShell, el } from '../nav';
 import { registerServiceWorker } from '../sw-register';
+import { INBOX_CACHE, shareInboxKey } from '../sw-nav';
 import { log } from '../log';
 import { sharedUrl, sharedPostJson } from '../core/share-in';
 import { creditLine, embeddedCredit } from '../core/credit';
@@ -215,38 +216,52 @@ function content(): HTMLElement {
     } catch (err) {
       log.error('regift failed', err);
       bar.remove();
-      // Reddit's image hosts were not confirmed CORS-open when this shipped (2026-08-30);
-      // if the fetch is refused, say what that means rather than showing "Failed to fetch".
+      // Re-measured 2026-09-16: i.redd.it sends no access-control-allow-origin at
+      // all, while v.redd.it sends `*` — so this fetch can never succeed from any
+      // page, and the words point at the route that does work (share the picture
+      // itself: the OS hands the bytes over and nothing is fetched).
       const redditImage = post.source === 'reddit' && post.items.some((it) => it.kind === 'file');
       line.textContent = redditImage
-        ? "Reddit's image host refused this page. Pictures from Reddit need the regift app (coming); video works today."
+        ? "Reddit's image host will not let a page read the file — i.redd.it sends no CORS header at all, while their video host does, which is why video works here. Open the picture in Reddit, tap Share, and pick regift: the file itself comes across."
         : `Could not get the media: ${err instanceof Error ? err.message : String(err)}`;
       line.setAttribute('data-tone', 'error');
       line.setAttribute('data-testid', 'media-error');
       return;
     }
     bar.remove();
+    deliver(files, post, line);
+  }
+
+  /**
+   * Step 3 for files that are already in hand, however they got here — fetched
+   * from a post, or handed over by the OS through the share sheet. A share with
+   * no link behind it has NO post, and then there is no credit to offer: no
+   * Copy-credit button, no credit line, rather than a line that says nothing.
+   */
+  function deliver(files: readonly File[], post: Post | null, line: HTMLElement): void {
     const total = files.reduce((n, f) => n + f.size, 0);
     line.textContent = files.length === 1 ? `${files[0]?.name ?? ''} · ${(total / 1024 / 1024).toFixed(1)} MB` : `${files.length} files · ${(total / 1024 / 1024).toFixed(1)} MB`;
     const actions = el('div', 'actions');
     if (webShareOut.canShareFiles()) {
       actions.append(
         button(files.length === 1 ? 'Share…' : `Share all ${files.length}…`, 'btn btn-primary', 'share', () => {
-          navigator.share({ files, title: files[0]?.name ?? 'regift' }).catch((err: unknown) => log.warn('share dismissed', err));
+          navigator.share({ files: [...files], title: files[0]?.name ?? 'regift' }).catch((err: unknown) => log.warn('share dismissed', err));
         }),
       );
     }
-    const creditStr = creditLine(post);
-    const copy = button('Copy credit', 'btn btn-secondary', 'copy-credit', () => {
-      navigator.clipboard.writeText(creditStr).then(
-        () => {
-          copy.textContent = 'Credit copied';
-        },
-        (err: unknown) => log.warn('clipboard refused', err),
-      );
-    });
-    copy.title = creditStr;
-    actions.append(copy);
+    const creditStr = post ? creditLine(post) : null;
+    if (creditStr !== null) {
+      const copy = button('Copy credit', 'btn btn-secondary', 'copy-credit', () => {
+        navigator.clipboard.writeText(creditStr).then(
+          () => {
+            copy.textContent = 'Credit copied';
+          },
+          (err: unknown) => log.warn('clipboard refused', err),
+        );
+      });
+      copy.title = creditStr;
+      actions.append(copy);
+    }
     s3.body.append(actions);
     for (const [i, file] of files.entries()) {
       const row = el('div', 'result');
@@ -254,10 +269,114 @@ function content(): HTMLElement {
       row.append(preview(file), button(files.length === 1 ? 'Save' : `Save ${i + 1}`, 'btn btn-secondary', i === 0 ? 'save' : `save-${i + 1}`, () => saveFile(file)));
       s3.body.append(row);
     }
-    const creditText = el('p', 'credit', creditStr);
-    creditText.setAttribute('data-testid', 'credit-line');
-    s3.body.append(creditText);
+    if (creditStr !== null) {
+      const creditText = el('p', 'credit', creditStr);
+      creditText.setAttribute('data-testid', 'credit-line');
+      s3.body.append(creditText);
+    }
     s3.setState('done');
+  }
+
+  /**
+   * The credit, written into a file regift did NOT fetch — same rules as
+   * fileFor: EXIF/iTXt/comment block for pictures, container tags for mp4. It
+   * degrades to the file as it came on any error, because a tagging failure
+   * must never cost the file itself.
+   */
+  async function tagged(file: File, post: Post): Promise<File> {
+    const credit = embeddedCredit(post);
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (file.type.startsWith('image/')) {
+        return new File([tagImage(bytes, file.type, credit) as BlobPart], file.name, { type: file.type });
+      }
+      if (file.type === 'video/mp4') {
+        const tags = { title: post.title ?? credit.description, artist: credit.author, comment: credit.description };
+        return new File([(await muxer.tag(bytes, tags)) as BlobPart], file.name, { type: file.type });
+      }
+    } catch (err) {
+      log.warn('credit embedding failed; keeping the shared file as it came', err);
+    }
+    return file;
+  }
+
+  /** The filename the worker parked with the bytes (percent-encoded: header
+   *  values are latin-1, filenames are not). */
+  function parkedName(res: Response): string {
+    const raw = res.headers.get('x-regift-filename') ?? '';
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  }
+
+  /**
+   * Collect the files the worker parked for this share (src/sw-nav.ts). TAKEN,
+   * not borrowed: the inbox is emptied here, so a reload of the landing address
+   * cannot re-deliver a share that has already been handled.
+   */
+  async function takeSharedMedia(count: number): Promise<File[]> {
+    const files: File[] = [];
+    try {
+      const cache = await caches.open(INBOX_CACHE);
+      for (let i = 0; i < count; i++) {
+        const res = await cache.match(shareInboxKey(location.href, i));
+        if (!res) continue;
+        const blob = await res.blob();
+        const type = res.headers.get('content-type') ?? blob.type;
+        files.push(new File([blob], parkedName(res) || `regift-${i + 1}`, { type }));
+      }
+    } catch (err) {
+      log.warn('could not collect the shared files', err);
+    } finally {
+      // Emptied even if collecting went wrong, so a half-read share is not
+      // handed over twice.
+      await caches.delete(INBOX_CACHE).catch((err: unknown) => log.warn('could not empty the share inbox', err));
+    }
+    return files;
+  }
+
+  /**
+   * A share that carried FILES. The bytes are already here — the OS handed them
+   * over, nothing was fetched, no origin was crossed — so this is step 3 with
+   * step 2 reduced to the credit. If a link came along too, it is read for that
+   * credit; if that read is refused, the files ship uncredited rather than not
+   * at all.
+   */
+  async function produceShared(count: number, link: string | null): Promise<void> {
+    s3.setState('active');
+    const line = status(s3.body, 'Taking the shared file…');
+    const files = await takeSharedMedia(count);
+    if (files.length === 0) {
+      line.textContent = 'Nothing usable arrived with that share — a share is delivered once, so a reload cannot show it again. Share the picture to regift once more.';
+      line.setAttribute('data-tone', 'error');
+      line.setAttribute('data-testid', 'media-error');
+      return;
+    }
+    let post: Post | null = null;
+    if (link) {
+      s2.setState('active');
+      try {
+        post = await readAny(link, webCourier);
+      } catch (err) {
+        log.warn('shared media: the link that came with it could not be read', err);
+      }
+    }
+    if (post) {
+      s2.body.append(credit(post));
+    } else {
+      status(
+        s2.body,
+        link
+          ? 'Could not read that post for a credit line — the picture itself came through the share sheet, so it is here anyway.'
+          : 'This file came straight through the share sheet, so there is no post to read — and no credit line.',
+      );
+    }
+    s2.setState('done');
+    // `const` so the narrowing survives into the closure below.
+    const credited = post;
+    deliver(credited ? await Promise.all(files.map((f) => tagged(f, credited))) : files, credited, line);
   }
 
   function assisted(jsonUrl: string): void {
@@ -379,7 +498,13 @@ function content(): HTMLElement {
     root.append(hint);
   }
 
-  if (arrivedJson !== null) {
+  // A file share (POST, parked by the worker) beats a link or post data in the
+  // same arrival: the bytes are already here, so nothing needs reading.
+  const sharedCount = Number(params.get('shared-media') ?? '');
+  if (Number.isInteger(sharedCount) && sharedCount > 0) {
+    log.info('share target arrival: files', sharedCount);
+    void produceShared(sharedCount, arrived);
+  } else if (arrivedJson !== null) {
     try {
       const post = fromReddit(parsePostListing(arrivedJson));
       if (post.permalink) input.value = post.permalink;

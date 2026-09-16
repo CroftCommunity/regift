@@ -61,10 +61,21 @@ before assuming they still hold):
 - **Pixelfed:** status endpoints `302 → /login` without a session on gram.social and
   pixelfed.social; refused with the reason.
 - `i.redd.it` (pictures) refuses a cross-origin page fetch — measured on-device AND from a
-  second network on a real image URL, 2026-08-30. Reddit pictures are parsed but need the
-  native courier; the page says so in words.
+  second network on a real image URL, 2026-08-30; re-measured 2026-09-16 with header probes:
+  `i.redd.it`, `preview.redd.it` and `external-preview.redd.it` send **no**
+  `access-control-allow-origin` at all (`preview.*` also 403s a hotlink), while `v.redd.it`
+  sends `*` and answers an OPTIONS preflight. Same CDN (`server: snooserv`), opposite policy,
+  because Reddit's own player reads DASH over XHR/MSE (needs CORS) and their pictures only
+  ever render in `<img>` (never does). So NO page can fetch a Reddit picture — the way in is
+  the **POST file share target** (`src/sw-nav.ts`): the OS hands the bytes over, no origin is
+  crossed. Reddit pictures are still parsed from a link for the native courier.
 - A `/s/` share link 307s; appending `.json` to it lands on the subreddit root, not the post.
 - Reddit's mobile web share button sends `navigator.share({ url })` with only the `/s/` link.
+
+A file share is a POST, and no static host answers a POST, so the **service worker is the
+endpoint**: `isShareTarget` → `receiveShare` parks the files in `INBOX_CACHE` (spared by the
+`activate` sweep) and 303s to `index.html?shared-media=N`, which takes them once. The
+one-release caveat is in `src/sw-nav.ts`: do NOT "fix" it with `skipWaiting()`.
 
 ## Conventions
 
