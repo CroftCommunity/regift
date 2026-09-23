@@ -23,6 +23,18 @@ unknown, and the WebView has none. Then the SEND intent-filter for share-in and
 Second courier for desktop/Firefox: the croft-pwa Croft Bridge extension pattern
 (`croft-pwa/docs/CONTENT-FETCH.md`), reporting `reddit.com` readable when detected.
 
+**Instagram rides the same courier (2026-09-23).** The reader is done
+(`src/core/readers/instagram.ts`): a real-browser navigation to
+`/p/<code>/embed/captioned/` renders a public reel signed-out and the post's JSON is in
+the page; the CDN mp4 is CORS-open. The web courier declines `instagram.com` (no CORS, no
+script door — measured, `CLAUDE.md`), so the hidden-WebView courier reporting
+`instagram.com` readable is the whole remaining step for reels. Two things it does not
+cover: **pictures and carousels** (`GraphImage`, `GraphSidecar`) — refused by name until a
+capture of each shape becomes a fixture (do not write their parsing from memory); and the
+**two file routes** the page offers meanwhile (Instagram app Share → Download; long-press
+on the embed page's video) — described from Instagram's and Chrome's documented behaviour,
+not yet exercised on a phone. `[device: android]` for those.
+
 ## 2. Measure a large mux on a real phone
 
 The e2e proves the mux on 2-second fixtures in desktop Chromium, and the 2026-08-30 device
@@ -68,7 +80,8 @@ gram.social post link to probe. If E157 closes the door, Pixelfed becomes a line
 
 ## 5. Facebook and other sources
 
-Out of scope until the Reddit loop has a courier that needs no assistance. yt-dlp's
+Out of scope until the Reddit loop has a courier that needs no assistance (Instagram
+reels joined the pile as a §1 line item on 2026-09-23, owner-asked). yt-dlp's
 extractors are the living reference; definitions should be data, not code.
 
 ## 6. Shrink a local mp4 for a destination's size limit

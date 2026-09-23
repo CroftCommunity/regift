@@ -1,11 +1,14 @@
 // The page's own courier: plain fetch. Reads anything that sends CORS — and the
 // media hosts regift uses all do (measured 2026-08-30: v.redd.it, Bluesky PDSs and
 // the public AppView, Mastodon instances and their files hosts, Tumblr's CDNs).
-// The one host family it declines up front is reddit.com, which sends no CORS
-// headers, so the core routes around it (JSONP, then the assisted step).
+// The host families it declines up front are reddit.com (measured 2026-08-30)
+// and instagram.com (2026-09-23), which send no CORS headers, so the core routes
+// around them (JSONP, then the assisted step, for Reddit; the native courier for
+// Instagram — its media CDN, *.fbcdn.net / cdninstagram.com, sends `*` and is
+// read here as usual).
 import type { Courier } from '../../core/ports';
 
-const NO_CORS = /(^|\.)reddit\.com$/;
+const NO_CORS = /(^|\.)reddit\.com$|(^|\.)instagram\.com$/;
 
 async function readAll(res: Response, onProgress?: (loaded: number, total: number | null) => void): Promise<Uint8Array> {
   const total = Number(res.headers.get('content-length')) || null;

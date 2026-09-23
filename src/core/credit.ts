@@ -4,7 +4,7 @@
 import type { Post, Source } from './post';
 import type { Credit } from './tag';
 
-const PLATFORM: Record<Source, string> = { reddit: 'Reddit', bluesky: 'Bluesky', mastodon: 'Mastodon', tumblr: 'Tumblr', pixelfed: 'Pixelfed' };
+const PLATFORM: Record<Source, string> = { reddit: 'Reddit', bluesky: 'Bluesky', mastodon: 'Mastodon', tumblr: 'Tumblr', pixelfed: 'Pixelfed', instagram: 'Instagram' };
 
 function person(post: Post): string | null {
   if (!post.author) return null;
@@ -14,6 +14,7 @@ function person(post: Post): string | null {
     case 'bluesky':
     case 'mastodon':
     case 'pixelfed':
+    case 'instagram':
       return `@${post.author}`;
     case 'tumblr':
       return post.author;

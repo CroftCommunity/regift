@@ -98,3 +98,22 @@ test('Pixelfed: refused with the reason — the instance requires sign-in', asyn
   await page.getByTestId('go').click();
   await expect(page.getByTestId('needs-sign-in')).toContainText('Pixelfed');
 });
+
+test('Instagram: the page cannot read instagram.com, so it says so and offers the two routes — without touching the host', async ({ page }) => {
+  // Measured 2026-09-23: www.instagram.com sends no CORS header and its embed is
+  // HTML, so the web courier declines it up front; nothing may be requested.
+  const reads: string[] = [];
+  await page.route('https://www.instagram.com/**', (route) => {
+    reads.push(route.request().url());
+    return route.abort('failed');
+  });
+  await page.goto('/index.html?url=' + encodeURIComponent('https://www.instagram.com/reel/DdFoiaxEw6H/?igsh=MWx4dGZ0bmRmZ3F6Zw=='));
+  await page.getByTestId('go').click();
+  const hint = page.getByTestId('instagram-blocked');
+  await expect(hint).toBeVisible();
+  await expect(hint).toContainText('Download');
+  await expect(page.getByTestId('open-instagram-embed')).toHaveAttribute('href', 'https://www.instagram.com/p/DdFoiaxEw6H/embed/captioned/');
+  // Not the Reddit paste-the-JSON step: there is no JSON a person could paste.
+  await expect(page.getByTestId('assisted')).toHaveCount(0);
+  expect(reads).toEqual([]);
+});

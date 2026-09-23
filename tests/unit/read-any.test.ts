@@ -32,6 +32,14 @@ describe('readAny', () => {
     await expect(readAny('https://www.reddit.com/r/x/s/AbC', courier)).rejects.toBeInstanceOf(NeedsBrowserError);
   });
 
+  it('an Instagram link dispatches to its reader', async () => {
+    const embed = readFileSync(new URL('../fixtures/instagram/reel-embed-captioned.html', import.meta.url), 'utf8');
+    const c: Courier = { ...courier, text: () => Promise.resolve(embed) };
+    const post = await readAny('https://www.instagram.com/reels/DdFoiaxEw6H/', c);
+    expect(post.source).toBe('instagram');
+    expect(post.items[0]).toMatchObject({ kind: 'file', mime: 'video/mp4' });
+  });
+
   it('a pixelfed link is refused with the reason: the instance requires sign-in to read', async () => {
     await expect(readAny('https://gram.social/p/chase523/98647664694091234', courier)).rejects.toBeInstanceOf(NeedsSignInError);
   });
