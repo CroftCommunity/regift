@@ -10,6 +10,7 @@ import { classifyLink, NeedsSignInError } from './sources';
 import { readBluesky } from './readers/bluesky';
 import { readMastodon } from './readers/mastodon';
 import { readTumblr } from './readers/tumblr';
+import { readInstagram } from './readers/instagram';
 import { extensionFor, type MediaItem, type Post } from './post';
 
 /** The link is a redirect only a browser navigation can follow. */
@@ -75,6 +76,8 @@ export async function readAny(url: string, courier: Courier): Promise<Post> {
       return readMastodon(link, courier);
     case 'tumblr':
       return readTumblr(link, courier);
+    case 'instagram':
+      return readInstagram(link, courier);
     case 'pixelfed':
       // Pixelfed's status API answers 302 → /login without a session (gram.social and
       // pixelfed.social alike, 2026-08-30); the ActivityPub outbox is empty.

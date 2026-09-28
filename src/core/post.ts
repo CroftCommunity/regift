@@ -1,9 +1,9 @@
 // The one shape every source reduces to: who made it, where it lives, and the
 // media the page can turn into files. A `file` item is a single CORS-readable
-// URL (Bluesky blob, Mastodon attachment, Tumblr CDN); a `reddit-video` item
+// URL (Bluesky blob, Mastodon attachment, Tumblr CDN, Instagram's mp4); a `reddit-video` item
 // still needs the DASH read and the mux.
 
-export type Source = 'reddit' | 'bluesky' | 'mastodon' | 'tumblr' | 'pixelfed';
+export type Source = 'reddit' | 'bluesky' | 'mastodon' | 'tumblr' | 'pixelfed' | 'instagram';
 
 export type MediaItem =
   | { readonly kind: 'file'; readonly url: string; readonly mime: string; readonly filename: string }

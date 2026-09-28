@@ -1,7 +1,7 @@
 # regift
 
 **Share a post in, get the media out.** regift is a Croft PWA you share a post to from the
-Android share sheet — **Reddit, Bluesky, Mastodon or Tumblr** — and it fetches the media
+Android share sheet — **Reddit, Bluesky, Mastodon, Tumblr, or Instagram** — and it fetches the media
 *on your device* (for Reddit video, the separate tracks are joined with ffmpeg.wasm; the
 others hand over their original files) and passes the result to the next app through the
 same share sheet: Google Photos, Bluesky, whatever is installed. No server, no account, no ads. Nothing you share leaves your device
@@ -61,6 +61,14 @@ Reddit post ──share──► regift ──► read post ──► fetch trac
   CORS-open (Bluesky's original blobs come from the PDS; Tumblr's legacy JSON read is loaded
   as a script). Galleries come out as several files. **Pixelfed** is recognised but refused
   with the reason — its instances show posts only to signed-in members (`TODO.md` §4).
+- **Instagram reels** are parsed from the post's embed page (`/p/<code>/embed/captioned/`,
+  which renders signed-out) into the one progressive mp4 the CDN serves CORS-open — but
+  `www.instagram.com` itself sends no CORS header and the post is HTML, not a script, so
+  no page can do that read; the native courier will (`TODO.md` §1). Until then regift
+  says so and points at the two routes that hand it the file instead of the link: the
+  Instagram app's **Share → Download** on the reel, or the embed page (a button) where a
+  long-press on the video saves it. Pictures and carousels are recognised and refused by
+  name; their shape has not been captured yet.
 - **The credit rides inside the file**: EXIF (JPEG, WebP), iTXt (PNG), a comment block
   (GIF), MP4 container tags — Google Photos shows it in the info panel. Platforms strip
   metadata on upload, so the visible credit on a repost still comes from **Copy credit**.
@@ -95,7 +103,7 @@ reads the pin (`fnm install`, `eval "$(fnm env --use-on-cd)"`).
 ## Layout
 
 - `src/core/` — the platform-free pipeline: `share-in`, `sources` (the classifier),
-  `readers/{bluesky,mastodon,tumblr}`, `reddit/{link,post,dash}`, `post` (the shared
+  `readers/{bluesky,mastodon,tumblr,instagram}`, `reddit/{link,post,dash}`, `post` (the shared
   shape), `credit`, `pipeline`, `ports`.
 - `src/adapters/web/` — `fetch-courier`, `ffmpeg-muxer`, `share-out`.
 - `src/pages/` — one entry per HTML shell (`index`, `settings`); `src/nav.ts`, `theme.ts`,

@@ -4,7 +4,8 @@
 
 **Scope:** regift — a Croft PWA that receives a shared social-platform post, extracts the
 media on-device, and hands the file to the next app via the share sheet. Reddit video,
-Bluesky, Mastodon and Tumblr media → anywhere, today. **Not this repo:** any server, any account with the source platform, any
+Bluesky, Mastodon and Tumblr media → anywhere, today; Instagram reels are read from a
+link only by a courier that can read instagram.com (the native one, `TODO.md` §1). **Not this repo:** any server, any account with the source platform, any
 publishing to a destination (the destination app does its own upload).
 **Provides:** the platform-free extraction core + web adapters. **Consumes:** the croft-pwa
 chassis (build, SW, tokens, gate). Card + altitudes: `CroftC/.claude/ARCHITECTURE.md`.
@@ -70,6 +71,18 @@ before assuming they still hold):
   the **POST file share target** (`src/sw-nav.ts`): the OS hands the bytes over, no origin is
   crossed. Reddit pictures are still parsed from a link for the native courier.
 - A `/s/` share link 307s; appending `.json` to it lands on the subreddit root, not the post.
+- **Instagram (measured 2026-09-23, headless Chromium, mobile UA, no cookies):** the post
+  page, `/p/<code>/embed/` and `/p/<code>/embed/captioned/` all render a public reel
+  signed-out in a real browser, and all send **no** `access-control-allow-origin`; a
+  non-browser TLS client (curl) gets a 200 bare shell with no post data in it. The embed
+  page carries the post as JSON inside a JSON string, `"contextJSON":"{\"gql_data\":
+  {\"shortcode_media\":{…}}}"`, in a bootstrap `<script>` (`__typename` `GraphVideo`,
+  `video_url`, `owner.username`, `edge_media_to_caption`, `product_type` `clips`). The
+  media CDN (`instagram.f*.fna.fbcdn.net`, `scontent.cdninstagram.com`) sends `*` and
+  answers an OPTIONS preflight on the mp4, which is one progressive file with audio
+  (`xpv_progressive` in its tag) — a `file` item, no mux. So the reader is ready and the
+  page is not the courier: no script door exists (HTML, not JS), and the web courier
+  declines `instagram.com` up front. Signed CDN URLs carry an expiry (`oe=`).
 - Reddit's mobile web share button sends `navigator.share({ url })` with only the `/s/` link.
 
 A file share is a POST, and no static host answers a POST, so the **service worker is the

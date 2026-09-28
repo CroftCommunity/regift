@@ -17,6 +17,7 @@ describe('creditLine', () => {
     expect(creditLine(post({ source: 'bluesky', author: 'rainmaker1973-m.bsky.social', permalink: 'https://bsky.app/x' }))).toBe('via @rainmaker1973-m.bsky.social on Bluesky — https://bsky.app/x');
     expect(creditLine(post({ source: 'mastodon', author: 'Mastodon@mastodon.social', where: 'mastodon.social' }))).toBe('via @Mastodon@mastodon.social on mastodon.social');
     expect(creditLine(post({ source: 'tumblr', author: 'ariaiscursed' }))).toBe('via ariaiscursed on Tumblr');
+    expect(creditLine(post({ source: 'instagram', author: 'lifeunfolds.ai', permalink: 'https://www.instagram.com/reel/DdFoiaxEw6H/' }))).toBe('via @lifeunfolds.ai on Instagram — https://www.instagram.com/reel/DdFoiaxEw6H/');
   });
 
   it('drops the parts it does not know rather than printing "null"', () => {

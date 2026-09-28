@@ -7,6 +7,16 @@ entry here before it lands.
 
 ## 2026-09
 
+- 2026-09-23 **Instagram reels, recognised and read — by the courier that can:** share an
+  Instagram reel or post link (`/reel/`, `/reels/`, `/p/`, `/tv/`, with or without the
+  poster's name) and regift knows it, reads the post from its embed page into the one mp4
+  the CDN serves, and credits `@poster on Instagram`. What a page cannot do is that read:
+  `www.instagram.com` sends no CORS header and the post is a web page, not data (measured
+  2026-09-23), so there is no Reddit-style trick and no data to paste. Until the Android
+  app carries the read, the page says so and offers the two routes that hand it the file:
+  the Instagram app's Share → Download on the reel, or the post's embed page (a button)
+  where a long-press on the video saves it; share the file to regift from either. Pictures
+  and carousels are refused by name for now.
 - 2026-09-16 **Reddit pictures get in — share the picture, not the link:** regift now
   receives the FILE itself from the share sheet, not only a link. Open a picture in Reddit,
   tap Share, pick regift, and it comes across with nothing fetched and nothing leaving your

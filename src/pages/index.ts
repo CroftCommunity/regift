@@ -1,8 +1,9 @@
 // The regift page: a link comes in (Web Share Target query, or pasted), the
 // media comes out (share sheet, or a download). The page owns the states the
 // core cannot resolve by itself — a share link that needs the browser, a post
-// the page's courier cannot read (the assisted step), a source that needs a
-// sign-in, a post with no media — and turns each into words and one next action.
+// the page's courier cannot read (the assisted step for Reddit; the file routes
+// for Instagram), a source that needs a sign-in, a post with no media — and turns
+// each into words and one next action.
 import { mountShell, el } from '../nav';
 import { registerServiceWorker } from '../sw-register';
 import { INBOX_CACHE, shareInboxKey } from '../sw-nav';
@@ -11,6 +12,7 @@ import { sharedUrl, sharedPostJson } from '../core/share-in';
 import { creditLine, embeddedCredit } from '../core/credit';
 import { tagImage } from '../core/tag';
 import { readAny, regiftVideo, fromReddit, NeedsBrowserError, type Stage } from '../core/pipeline';
+import { isInstagramEmbedUrl } from '../core/readers/instagram';
 import { CourierBlockedError } from '../core/ports';
 import { NeedsSignInError } from '../core/sources';
 import { UnsupportedMediaError } from '../core/readers/tumblr';
@@ -95,7 +97,7 @@ function content(): HTMLElement {
   // --- Step 1: the link ---
   const s1 = step('1. The post');
   const field = el('label', 'field');
-  field.append(el('span', 'field-label', 'Link to a post — Reddit, Bluesky, Mastodon, Tumblr'));
+  field.append(el('span', 'field-label', 'Link to a post — Reddit, Bluesky, Mastodon, Tumblr, Instagram'));
   const input = el('input');
   input.type = 'url';
   input.name = 'url';
@@ -427,6 +429,30 @@ function content(): HTMLElement {
     s2.body.append(hint, oldReddit, open, pasteField, use, err);
   }
 
+  function instagramBlocked(embedUrl: string): void {
+    // Measured 2026-09-23: www.instagram.com sends no CORS header, and the post
+    // arrives as HTML, not a script — so there is no Reddit-style trick and no
+    // JSON a person could paste. The reader is done and waits for the native
+    // courier (TODO.md §1); until then the words point at the two routes that
+    // hand the FILE over, which crosses no origin at all.
+    const hint = el('div', 'hint');
+    hint.setAttribute('data-testid', 'instagram-blocked');
+    hint.append(
+      document.createTextNode(
+        'A page cannot read Instagram: www.instagram.com sends no CORS header, and the post is a web page, not data — so regift cannot fetch this by itself yet (its Android app will). Two ways that work today, both handing regift the video file rather than the link:',
+      ),
+    );
+    const ways = el('ol');
+    ways.append(
+      el('li', undefined, 'In the Instagram app, on the reel, tap Share, then Download (offered when the poster allows saving). Then share the saved video to regift.'),
+      el('li', undefined, 'Or open the post’s embed page (the button), long-press the video and save it, then share that file to regift.'),
+    );
+    hint.append(ways);
+    const open = openLink(embedUrl, 'Open the embed page');
+    open.setAttribute('data-testid', 'open-instagram-embed');
+    s2.body.append(hint, open);
+  }
+
   function onRefused(err: unknown): void {
     if (err instanceof NeedsBrowserError) {
       const hint = el('div', 'hint');
@@ -441,7 +467,8 @@ function content(): HTMLElement {
       return;
     }
     if (err instanceof CourierBlockedError) {
-      assisted(err.url);
+      if (isInstagramEmbedUrl(err.url)) instagramBlocked(err.url);
+      else assisted(err.url);
       return;
     }
     if (err instanceof NeedsSignInError) {
