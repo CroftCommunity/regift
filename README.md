@@ -104,8 +104,8 @@ reads the pin (`fnm install`, `eval "$(fnm env --use-on-cd)"`).
 
 - `src/core/` — the platform-free pipeline: `share-in`, `sources` (the classifier),
   `readers/{bluesky,mastodon,tumblr,instagram}`, `reddit/{link,post,dash}`, `post` (the shared
-  shape), `credit`, `pipeline`, `ports`.
-- `src/adapters/web/` — `fetch-courier`, `ffmpeg-muxer`, `share-out`.
+  shape), `credit`, `clip` (trim handles + GIF size plan), `pipeline`, `ports`.
+- `src/adapters/web/` — `fetch-courier`, `ffmpeg` (muxer + clipper), `share-out`.
 - `src/pages/` — one entry per HTML shell (`index`, `settings`); `src/nav.ts`, `theme.ts`,
   `sw*.ts`, `log.ts`, `version.ts` are the croft-pwa chassis.
 - `tests/unit/` (vitest, node) · `tests/e2e/` (Playwright against the built bundle;

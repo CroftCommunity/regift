@@ -5,6 +5,20 @@ landing *is* releasing: sections are months, each entry dated by its landing. Pe
 `CroftC/.claude/CHANGELOGS.md`, the branch that changes something a user runs adds its
 entry here before it lands.
 
+## 2026-10
+
+- 2026-10-02 **cut a clip, keep it as a GIF or an MP4:** every video regift hands you (fetched
+  from a post or shared in as a file) now has a **Cut a clip** box under it: a slider with a
+  handle at each end. Drag them to the span you want (the preview jumps to the frame you
+  picked; **Play the clip** plays just that span), then **Clip as GIF** or **Clip as MP4**,
+  and Share or Save the result. It is all done on your device by the same ffmpeg regift
+  already uses. The cut is re-encoded, so it starts on the frame you chose rather than the
+  nearest keyframe (every 2 s on a typical Reddit video). GIFs are big, so regift plans one
+  near 10 MB: 15 fps and up to 480 px on the long side for short clips, then fewer frames
+  and a smaller picture as the clip gets longer; the plan shows under the slider before you
+  tap. The credit rides in the GIF's comment block and the MP4's tags. The length is read
+  from the file itself, so a video your browser cannot preview can still be cut.
+
 ## 2026-09
 
 - 2026-09-23 **Instagram reels, recognised and read — by the courier that can:** share an
