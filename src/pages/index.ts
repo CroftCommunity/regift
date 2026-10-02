@@ -11,6 +11,8 @@ import { log } from '../log';
 import { sharedUrl, sharedPostJson } from '../core/share-in';
 import { creditLine, embeddedCredit } from '../core/credit';
 import { tagImage } from '../core/tag';
+import { mp4Info } from '../core/mp4-info';
+import { clipFilename, clipLength, formatTime, gifPlan, moveEnd, moveStart, wholeClip, type Clip } from '../core/clip';
 import { readAny, regiftVideo, fromReddit, NeedsBrowserError, type Stage } from '../core/pipeline';
 import { isInstagramEmbedUrl } from '../core/readers/instagram';
 import { CourierBlockedError } from '../core/ports';
@@ -19,10 +21,10 @@ import { UnsupportedMediaError } from '../core/readers/tumblr';
 import { parsePostListing, PostParseError } from '../core/reddit/post';
 import type { MediaItem, Post } from '../core/post';
 import { webCourier } from '../adapters/web/web-courier';
-import { ffmpegMuxer } from '../adapters/web/ffmpeg-muxer';
+import { ffmpegTools } from '../adapters/web/ffmpeg';
 import { webShareOut, saveFile } from '../adapters/web/share-out';
 
-const muxer = ffmpegMuxer(new URL('vendor/ffmpeg/', location.href));
+const { muxer, clipper } = ffmpegTools(new URL('vendor/ffmpeg/', location.href));
 
 const STAGE_WORDS: Record<Stage, string> = {
   manifest: 'Reading the track list…',
@@ -268,7 +270,9 @@ function content(): HTMLElement {
     for (const [i, file] of files.entries()) {
       const row = el('div', 'result');
       row.setAttribute('data-testid', 'result');
-      row.append(preview(file), button(files.length === 1 ? 'Save' : `Save ${i + 1}`, 'btn btn-secondary', i === 0 ? 'save' : `save-${i + 1}`, () => saveFile(file)));
+      const view = preview(file);
+      row.append(view, button(files.length === 1 ? 'Save' : `Save ${i + 1}`, 'btn btn-secondary', i === 0 ? 'save' : `save-${i + 1}`, () => saveFile(file)));
+      if (view instanceof HTMLVideoElement) row.append(trimmer(file, view, post));
       s3.body.append(row);
     }
     if (creditStr !== null) {
@@ -277,6 +281,161 @@ function content(): HTMLElement {
       s3.body.append(creditText);
     }
     s3.setState('done');
+  }
+
+  /**
+   * Cut a span out of a video that is already here, as an mp4 or a GIF. Two
+   * range inputs share one rail — native inputs, so the keyboard and a screen
+   * reader each get a real "Clip start" and "Clip end" slider — and the preview
+   * seeks to whichever handle moved, so the person sees the frame they chose.
+   * The bytes are held for the encode: a GIF or mp4 is made from the file itself.
+   */
+  function trimmer(file: File, video: HTMLVideoElement, post: Post | null): HTMLElement {
+    const box = el('fieldset', 'trim');
+    box.setAttribute('data-testid', 'trim');
+    box.append(el('legend', undefined, 'Cut a clip'));
+    const rail = el('div', 'range2');
+    const fill = el('div', 'range2-fill');
+    const handle = (label: string, testid: string): HTMLInputElement => {
+      const r = el('input');
+      r.type = 'range';
+      r.min = '0';
+      r.step = '0.1';
+      r.disabled = true;
+      r.setAttribute('aria-label', label);
+      r.setAttribute('data-testid', testid);
+      return r;
+    };
+    const from = handle('Clip start', 'trim-start');
+    const to = handle('Clip end', 'trim-end');
+    rail.append(fill, from, to);
+    const readout = el('p', 'mono trim-readout', 'Reading the video length…');
+    readout.setAttribute('data-testid', 'trim-readout');
+    const play = button('Play the clip', 'btn btn-secondary', 'trim-play', () => {
+      video.currentTime = clip.start;
+      void video.play().catch((err: unknown) => log.warn('preview would not play', err));
+    });
+    const asMp4 = button('Clip as MP4', 'btn btn-secondary', 'clip-mp4', () => void make('mp4'));
+    const asGif = button('Clip as GIF', 'btn btn-primary', 'clip-gif', () => void make('gif'));
+    const controls = [play, asMp4, asGif];
+    for (const b of controls) b.disabled = true;
+    const actions = el('div', 'actions');
+    actions.append(play, asMp4, asGif);
+    const out = el('div');
+    box.append(rail, readout, actions, out);
+
+    let duration = 0;
+    let size = { width: 0, height: 0 };
+    let clip: Clip = wholeClip(0);
+    const plan = () => gifPlan(size, clipLength(clip));
+    const render = (): void => {
+      from.value = String(clip.start);
+      to.value = String(clip.end);
+      from.setAttribute('aria-valuetext', formatTime(clip.start));
+      to.setAttribute('aria-valuetext', formatTime(clip.end));
+      // CSSOM, not a style attribute: CSP style-src 'self' allows this.
+      rail.style.setProperty('--from', String(clip.start / duration));
+      rail.style.setProperty('--to', String(clip.end / duration));
+      // Handles can meet; the one nearer its own end of the rail goes on top so
+      // the other is never buried under it.
+      rail.toggleAttribute('data-start-on-top', clip.start > duration / 2);
+      const g = plan();
+      readout.textContent = `${formatTime(clip.start)} → ${formatTime(clip.end)} · ${clipLength(clip).toFixed(1)} s\nGIF ${g.width}×${g.height}, ${g.fps} fps`;
+    };
+    const ready = (info: { duration: number; width: number; height: number }): void => {
+      duration = info.duration;
+      size = { width: info.width, height: info.height };
+      clip = wholeClip(duration);
+      for (const r of [from, to]) {
+        r.max = String(duration);
+        r.disabled = false;
+      }
+      for (const b of controls) b.disabled = false;
+      render();
+    };
+    // The length comes from the container, so a video this browser cannot decode
+    // (no preview) can still be cut; the <video> is the fallback for non-mp4s.
+    const fromPlayer = (): void => {
+      if (Number.isFinite(video.duration) && video.duration > 0) ready({ duration: video.duration, width: video.videoWidth, height: video.videoHeight });
+      else readout.textContent = 'This video does not say how long it is, so it cannot be cut here.';
+    };
+    const bytes = file.arrayBuffer().then((b) => new Uint8Array(b));
+    void bytes.then((b) => {
+      const info = mp4Info(b);
+      if (info && info.duration > 0) ready(info);
+      else if (video.readyState >= HTMLMediaElement.HAVE_METADATA) fromPlayer();
+      else {
+        video.addEventListener('loadedmetadata', fromPlayer, { once: true });
+        video.addEventListener('error', fromPlayer, { once: true });
+      }
+    });
+
+    from.addEventListener('input', () => {
+      clip = moveStart(clip, Number(from.value));
+      video.pause();
+      video.currentTime = clip.start;
+      render();
+    });
+    to.addEventListener('input', () => {
+      clip = moveEnd(clip, Number(to.value), duration);
+      video.pause();
+      video.currentTime = clip.end;
+      render();
+    });
+    // Playing stops at the end handle, so "Play the clip" plays only the clip.
+    video.addEventListener('timeupdate', () => {
+      if (!video.paused && clip.end < duration && video.currentTime >= clip.end) video.pause();
+    });
+
+    const make = async (kind: 'mp4' | 'gif'): Promise<void> => {
+      for (const b of controls) b.disabled = true;
+      from.disabled = to.disabled = true;
+      const span = clip;
+      const line = status(out, kind === 'gif' ? 'Making the GIF on your device…' : 'Cutting the clip on your device…');
+      const bar = el('progress');
+      bar.max = 1;
+      bar.value = 0;
+      out.append(bar);
+      const onProgress = (r: number): void => {
+        bar.value = r;
+      };
+      try {
+        const input = await bytes;
+        let made: Uint8Array;
+        if (kind === 'gif') {
+          made = await clipper.gif(input, span, plan(), onProgress);
+          // The credit rides in the GIF's comment block, like a fetched GIF's.
+          if (post) made = tagImage(made, 'image/gif', embeddedCredit(post));
+        } else {
+          made = await clipper.mp4(input, span, onProgress);
+        }
+        const name = clipFilename(file.name, span, kind);
+        const clipFile = new File([made as BlobPart], name, { type: kind === 'gif' ? 'image/gif' : 'video/mp4' });
+        line.textContent = `${name} · ${(clipFile.size / 1024 / 1024).toFixed(1)} MB`;
+        const row = el('div', 'result');
+        row.setAttribute('data-testid', 'clip-result');
+        const done = el('div', 'actions');
+        if (webShareOut.canShareFiles()) {
+          done.append(
+            button('Share…', 'btn btn-primary', 'clip-share', () => {
+              webShareOut.share(clipFile).catch((err: unknown) => log.warn('share dismissed', err));
+            }),
+          );
+        }
+        done.append(button('Save', 'btn btn-secondary', 'clip-save', () => saveFile(clipFile)));
+        row.append(preview(clipFile), done);
+        out.append(row);
+      } catch (err) {
+        log.error('clip failed', err);
+        line.textContent = `Could not make the clip: ${err instanceof Error ? err.message : String(err)}`;
+        line.setAttribute('data-tone', 'error');
+      } finally {
+        bar.remove();
+        for (const b of controls) b.disabled = false;
+        from.disabled = to.disabled = false;
+      }
+    };
+    return box;
   }
 
   /**
