@@ -420,3 +420,103 @@ progress {
 img.preview {
   object-fit: contain;
 }
+
+/* --- Cut a clip: two native range inputs on one rail ---
+ * Each input spans the whole rail but ignores the pointer; only its thumb takes
+ * it, so both handles can be dragged. --from/--to (0..1) place the filled span,
+ * offset by half a thumb because a native thumb's centre never reaches the ends. */
+.trim {
+  border: var(--stroke) solid var(--border);
+  border-radius: var(--r-l);
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  margin: var(--s-3) 0 0;
+  min-width: 0;
+}
+.trim legend {
+  font-family: var(--font-display);
+  padding: 0 var(--s-1);
+}
+.range2 {
+  --thumb: 22px;
+  position: relative;
+  height: 44px;
+  margin-bottom: var(--s-2);
+}
+.range2::before,
+.range2-fill {
+  content: '';
+  position: absolute;
+  top: 18px;
+  height: 8px;
+  border-radius: var(--r-pill);
+}
+.range2::before {
+  left: calc(var(--thumb) / 2);
+  right: calc(var(--thumb) / 2);
+  background: var(--border);
+}
+.range2-fill {
+  left: calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--from, 0));
+  width: calc((100% - var(--thumb)) * (var(--to, 1) - var(--from, 0)));
+  background: var(--accent);
+}
+.range2 input[type='range'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: none;
+}
+.range2 input[type='range']:focus-visible {
+  outline: none;
+}
+.range2[data-start-on-top] input:first-of-type {
+  z-index: 1;
+}
+.range2 input[type='range']::-webkit-slider-runnable-track {
+  height: 44px;
+  background: none;
+}
+.range2 input[type='range']::-moz-range-track {
+  background: none;
+}
+.range2 input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  width: var(--thumb);
+  height: 36px;
+  margin-top: 4px;
+  border-radius: var(--r-m);
+  border: 2px solid var(--accent-ink);
+  background: var(--accent);
+  cursor: ew-resize;
+}
+.range2 input[type='range']::-moz-range-thumb {
+  pointer-events: auto;
+  width: var(--thumb);
+  height: 36px;
+  border-radius: var(--r-m);
+  border: 2px solid var(--accent-ink);
+  background: var(--accent);
+  cursor: ew-resize;
+}
+.range2 input[type='range']:focus-visible::-webkit-slider-thumb {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.range2 input[type='range']:focus-visible::-moz-range-thumb {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.range2 input[type='range']:disabled::-webkit-slider-thumb {
+  opacity: 0.55;
+}
+.trim-readout {
+  white-space: pre-line;
+  margin-bottom: var(--s-3);
+}
