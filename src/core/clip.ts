@@ -30,6 +30,45 @@ export function moveEnd(clip: Clip, t: number, duration: number): Clip {
   return { start: clip.start, end: clamp(t, Math.min(duration, clip.start + MIN_CLIP), duration) };
 }
 
+/**
+ * A typed start, which may land anywhere: a start past the end carries the end
+ * along (a box is not a handle, so there is nothing to bump into).
+ */
+export function setStart(clip: Clip, t: number, duration: number): Clip {
+  if (!Number.isFinite(t)) return clip;
+  const start = clamp(t, 0, Math.max(0, duration - MIN_CLIP));
+  return { start, end: Math.min(duration, Math.max(clip.end, start + MIN_CLIP)) };
+}
+
+/** A typed end: an end before the start carries the start back. */
+export function setEnd(clip: Clip, t: number, duration: number): Clip {
+  if (!Number.isFinite(t)) return clip;
+  const end = clamp(t, Math.min(duration, MIN_CLIP), duration);
+  return { start: Math.max(0, Math.min(clip.start, end - MIN_CLIP)), end };
+}
+
+const SECONDS = /^(\d+([.,]\d*)?|[.,]\d+)$/;
+const WHOLE = /^\d+$/;
+
+/**
+ * What a person types in a time box: `83.4`, `1:23.4` or `1:02:03.5`, with a
+ * comma allowed as the decimal mark. Rounded to the tenth formatTime shows;
+ * null for anything else (an empty box, `1:75`, a negative).
+ */
+export function parseTime(text: string): number | null {
+  const parts = text.trim().split(':');
+  if (parts.length > 3) return null;
+  const secs = parts.pop() ?? '';
+  if (!SECONDS.test(secs) || !parts.every((p) => WHOLE.test(p))) return null;
+  const s = Number(secs.replace(',', '.'));
+  const units = parts.map(Number);
+  const m = units.pop() ?? 0;
+  const h = units.pop() ?? 0;
+  if (parts.length > 0 && s >= 60) return null;
+  if (parts.length === 2 && m >= 60) return null;
+  return Math.round((h * 3600 + m * 60 + s) * 10) / 10;
+}
+
 /** `m:ss.t` — a tenth is the slider's step, so that is the precision shown. */
 export function formatTime(seconds: number): string {
   const tenths = Math.round(Math.max(0, seconds) * 10);

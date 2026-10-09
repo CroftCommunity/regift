@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clipFilename, clipLength, formatTime, gifPlan, GIF_PIXEL_FRAME_BUDGET, MIN_CLIP, moveEnd, moveStart, wholeClip } from '../../src/core/clip';
+import { clipFilename, clipLength, formatTime, gifPlan, GIF_PIXEL_FRAME_BUDGET, MIN_CLIP, moveEnd, moveStart, parseTime, setEnd, setStart, wholeClip } from '../../src/core/clip';
 
 describe('the two handles', () => {
   const whole = wholeClip(24);
@@ -29,6 +29,49 @@ describe('the two handles', () => {
     const c = { start: 5, end: 10 };
     expect(moveStart(c, Number.NaN)).toEqual(c);
     expect(moveEnd(c, Number.NaN, 24)).toEqual(c);
+  });
+});
+
+describe('a time typed in a box', () => {
+  it('reads seconds, m:ss and h:mm:ss, to the tenth', () => {
+    expect(parseTime('83')).toBe(83);
+    expect(parseTime('83.44')).toBe(83.4);
+    expect(parseTime('1:23.4')).toBe(83.4);
+    expect(parseTime('0:05')).toBe(5);
+    expect(parseTime('1:02:03.5')).toBe(3723.5);
+    expect(parseTime('  2:00 ')).toBe(120);
+  });
+
+  it('takes a comma as the decimal mark, and reads what formatTime writes', () => {
+    expect(parseTime('1:23,4')).toBe(83.4);
+    expect(parseTime(formatTime(62.06))).toBe(62.1);
+  });
+
+  it('refuses what is not a time', () => {
+    for (const bad of ['', 'abc', '1:', ':30', '1:75', '-3', '1:2:3:4', '1.2.3']) expect(parseTime(bad), bad).toBeNull();
+  });
+});
+
+describe('a typed start or end', () => {
+  const c = { start: 10, end: 15 };
+
+  it('a start past the end carries the end along, to the duration at most', () => {
+    expect(setStart(c, 40, 60)).toEqual({ start: 40, end: 40 + MIN_CLIP });
+    expect(setStart(c, 12, 60)).toEqual({ start: 12, end: 15 });
+    expect(setStart(c, 99, 60)).toEqual({ start: 60 - MIN_CLIP, end: 60 });
+    expect(setStart(c, -1, 60)).toEqual({ start: 0, end: 15 });
+  });
+
+  it('an end before the start carries the start back, to zero at least', () => {
+    expect(setEnd(c, 4, 60)).toEqual({ start: 4 - MIN_CLIP, end: 4 });
+    expect(setEnd(c, 30, 60)).toEqual({ start: 10, end: 30 });
+    expect(setEnd(c, 99, 60)).toEqual({ start: 10, end: 60 });
+    expect(setEnd(c, 0, 60)).toEqual({ start: 0, end: MIN_CLIP });
+  });
+
+  it('a non-number leaves the clip as it was', () => {
+    expect(setStart(c, Number.NaN, 60)).toEqual(c);
+    expect(setEnd(c, Number.NaN, 60)).toEqual(c);
   });
 });
 

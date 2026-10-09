@@ -7,6 +7,13 @@ entry here before it lands.
 
 ## 2026-10
 
+- 2026-10-09 **type the clip's start and end, or take them from the video:** under the
+  slider in **Cut a clip** there is now a **Start** and an **End** box. Type a time
+  (`1:23.4`, `83.4`, or `1:02:03.5` for long videos; a comma works as the decimal mark) and
+  press Enter or tap away; the slider and the preview follow. Or scrub the video's own
+  player to the frame you want, pause, and tap **Now** beside Start or End. A typed start
+  past the end carries the end along (and the other way round) instead of stopping short.
+  Something that is not a time is flagged and the clip stays as it was.
 - 2026-10-02 **cut a clip, keep it as a GIF or an MP4:** every video regift hands you (fetched
   from a post or shared in as a file) now has a **Cut a clip** box under it: a slider with a
   handle at each end. Drag them to the span you want (the preview jumps to the frame you

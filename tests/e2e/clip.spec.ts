@@ -45,6 +45,53 @@ test('the handles start at the ends, and neither can pass the other', async ({ p
   await expect(page.getByTestId('trim-end')).toHaveAttribute('aria-valuetext', '0:01.7');
 });
 
+test('a start and end can be typed, and the slider follows', async ({ page }) => {
+  await sharedVideo(page);
+  await expect(page.getByTestId('trim-start-time')).toHaveValue('0:00.0');
+  await expect(page.getByTestId('trim-end-time')).toHaveValue('0:02.0');
+  await page.getByTestId('trim-start-time').fill('0:00.5');
+  await page.getByTestId('trim-end-time').fill('1.5');
+  await page.getByTestId('trim-end-time').press('Enter');
+  await expect(page.getByTestId('trim-readout')).toContainText('0:00.5 → 0:01.5 · 1.0 s');
+  await expect(page.getByTestId('trim-start')).toHaveValue('0.5');
+  await expect(page.getByTestId('trim-end')).toHaveValue('1.5');
+  await expect(page.getByTestId('trim-end-time')).toHaveValue('0:01.5');
+
+  // A typed start past the end carries the end along instead of stopping short.
+  await page.getByTestId('trim-start-time').fill('1.8');
+  await page.getByTestId('trim-start-time').press('Enter');
+  await expect(page.getByTestId('trim-readout')).toContainText('0:01.8 → 0:02.0 · 0.2 s');
+
+  // Not a time: the box says so and the clip stays put.
+  await page.getByTestId('trim-start-time').fill('soon');
+  await page.getByTestId('trim-start-time').press('Enter');
+  await expect(page.getByTestId('trim-start-time')).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByTestId('trim-time-hint')).toContainText('1:23.4');
+  await expect(page.getByTestId('trim-readout')).toContainText('0:01.8 → 0:02.0');
+  await page.getByTestId('trim-start-time').fill('1');
+  await page.getByTestId('trim-start-time').press('Enter');
+  await expect(page.getByTestId('trim-start-time')).not.toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByTestId('trim-readout')).toContainText('0:01.0 → 0:02.0');
+});
+
+test('"Now" sets a start or end to where the video is paused', async ({ page }) => {
+  await sharedVideo(page);
+  // The setter moves the playback position at once (no need to wait for a decoded frame).
+  const seek = (t: number) =>
+    page.evaluate((t) => {
+      const v = document.querySelector<HTMLVideoElement>('[data-testid="result"] video');
+      if (!v) throw new Error('no video');
+      v.pause();
+      v.currentTime = t;
+    }, t);
+  await seek(0.6);
+  await page.getByTestId('trim-start-now').click();
+  await seek(1.3);
+  await page.getByTestId('trim-end-now').click();
+  await expect(page.getByTestId('trim-readout')).toContainText('0:00.6 → 0:01.3 · 0.7 s');
+  await expect(page.getByTestId('trim-start-time')).toHaveValue('0:00.6');
+});
+
 test('the span between the handles becomes a looping GIF', async ({ page }) => {
   test.setTimeout(120_000); // the 31 MB core loads once per browser context
   await sharedVideo(page);
@@ -97,7 +144,7 @@ test('the clip controls fit a 320px phone and pass axe', async ({ page }) => {
   await sharedVideo(page);
   const widest = await page.evaluate(() => Math.max(...Array.from(document.querySelectorAll('body *')).map((el) => el.getBoundingClientRect().right)));
   expect(widest).toBeLessThanOrEqual(320);
-  for (const id of ['trim-start', 'trim-end', 'clip-gif', 'clip-mp4', 'trim-play']) {
+  for (const id of ['trim-start', 'trim-end', 'trim-start-time', 'trim-end-time', 'trim-start-now', 'trim-end-now', 'clip-gif', 'clip-mp4', 'trim-play']) {
     const box = await page.getByTestId(id).boundingBox();
     expect(box?.height ?? 0, id).toBeGreaterThanOrEqual(44);
   }
