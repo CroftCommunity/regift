@@ -7,11 +7,12 @@ import { readFileSync } from 'node:fs';
 // or an mp4, encoded by the REAL vendored ffmpeg.wasm in the real browser.
 
 const VIDEO = readFileSync(new URL('../fixtures/media/video.mp4', import.meta.url)); // 2.0 s, 90×160, 15 fps
+const LONG = readFileSync(new URL('../fixtures/media/long.mp4', import.meta.url)); // 60 s, 32×32, 2 fps
 
 test.use({ serviceWorkers: 'allow' });
 
 /** Share the fixture video in through the worker, as the OS would, and land. */
-async function sharedVideo(page: Page): Promise<void> {
+async function sharedVideo(page: Page, video: Buffer = VIDEO): Promise<void> {
   await page.goto('/index.html');
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null, null, { timeout: 30_000 });
@@ -19,7 +20,7 @@ async function sharedVideo(page: Page): Promise<void> {
     const form = new FormData();
     form.append('media', new File([Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))], 'clip-me.mp4', { type: 'video/mp4' }));
     return (await fetch('share-target', { method: 'POST', body: form })).url;
-  }, VIDEO.toString('base64'));
+  }, video.toString('base64'));
   await page.goto(landing);
   await expect(page.getByTestId('trim')).toBeVisible();
   await expect(page.getByTestId('clip-gif')).toBeEnabled();
@@ -72,6 +73,49 @@ test('a start and end can be typed, and the slider follows', async ({ page }) =>
   await page.getByTestId('trim-start-time').press('Enter');
   await expect(page.getByTestId('trim-start-time')).not.toHaveAttribute('aria-invalid', 'true');
   await expect(page.getByTestId('trim-readout')).toContainText('0:01.0 → 0:02.0');
+});
+
+test('zoom narrows the slider to the clip, so a few seconds are a visible distance', async ({ page }) => {
+  await sharedVideo(page, LONG);
+  await expect(page.getByTestId('trim-scale')).toContainText('0:00.0');
+  await expect(page.getByTestId('trim-scale')).toContainText('1:00.0');
+  await page.getByTestId('trim-start-time').fill('20');
+  await page.getByTestId('trim-end-time').fill('30');
+  await page.getByTestId('trim-end-time').press('Enter');
+  const railShare = async () =>
+    page.evaluate(() => {
+      const rail = document.querySelector('.range2');
+      const fill = document.querySelector('.range2-fill');
+      if (!rail || !fill) throw new Error('no rail');
+      return fill.getBoundingClientRect().width / rail.getBoundingClientRect().width;
+    });
+  expect(await railShare()).toBeLessThan(0.2); // 10 s of 60
+
+  await page.getByTestId('trim-zoom').click();
+  await expect(page.getByTestId('trim-zoom')).toHaveText('Zoom out');
+  // 2 s either side: the slider now spans 0:18.0 to 0:32.0.
+  await expect(page.getByTestId('trim-start')).toHaveAttribute('min', '18');
+  await expect(page.getByTestId('trim-end')).toHaveAttribute('max', '32');
+  await expect(page.getByTestId('trim-scale')).toContainText('0:18.0');
+  await expect(page.getByTestId('trim-scale')).toContainText('0:32.0');
+  expect(await railShare()).toBeGreaterThan(0.6);
+
+  // The handles still move in real seconds, and the clip did not change by zooming.
+  await expect(page.getByTestId('trim-readout')).toContainText('0:20.0 → 0:30.0');
+  await page.getByTestId('trim-start').fill('21.5');
+  await expect(page.getByTestId('trim-readout')).toContainText('0:21.5 → 0:30.0');
+
+  // A typed time outside the zoom refits it, rather than pinning a handle to the edge.
+  await page.getByTestId('trim-start-time').fill('5');
+  await page.getByTestId('trim-start-time').press('Enter');
+  // Now 0:05 to 0:30: 15% of 25 s (3.75 s) either side, out to the tenth.
+  await expect(page.getByTestId('trim-start')).toHaveAttribute('min', '1.2');
+  await expect(page.getByTestId('trim-end')).toHaveAttribute('max', '33.8');
+
+  await page.getByTestId('trim-zoom').click();
+  await expect(page.getByTestId('trim-zoom')).toHaveText('Zoom in');
+  await expect(page.getByTestId('trim-start')).toHaveAttribute('min', '0');
+  await expect(page.getByTestId('trim-end')).toHaveAttribute('max', '60');
 });
 
 test('"Now" sets a start or end to where the video is paused', async ({ page }) => {
@@ -144,7 +188,7 @@ test('the clip controls fit a 320px phone and pass axe', async ({ page }) => {
   await sharedVideo(page);
   const widest = await page.evaluate(() => Math.max(...Array.from(document.querySelectorAll('body *')).map((el) => el.getBoundingClientRect().right)));
   expect(widest).toBeLessThanOrEqual(320);
-  for (const id of ['trim-start', 'trim-end', 'trim-start-time', 'trim-end-time', 'trim-start-now', 'trim-end-now', 'clip-gif', 'clip-mp4', 'trim-play']) {
+  for (const id of ['trim-start', 'trim-end', 'trim-start-time', 'trim-end-time', 'trim-start-now', 'trim-end-now', 'trim-zoom', 'clip-gif', 'clip-mp4', 'trim-play']) {
     const box = await page.getByTestId(id).boundingBox();
     expect(box?.height ?? 0, id).toBeGreaterThanOrEqual(44);
   }

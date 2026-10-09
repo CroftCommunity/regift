@@ -47,6 +47,30 @@ export function setEnd(clip: Clip, t: number, duration: number): Clip {
   return { start: Math.max(0, Math.min(clip.start, end - MIN_CLIP)), end };
 }
 
+/** The part of the video the slider spans: the whole of it, or zoomed to the clip. */
+export interface Span {
+  readonly lo: number;
+  readonly hi: number;
+}
+
+/** Room either side of a zoomed clip: a share of its length, never under this (seconds). */
+const ZOOM_PAD_SHARE = 0.15;
+const ZOOM_PAD_MIN = 2;
+
+/**
+ * Zoom: the slider spans the clip plus a margin, so on a long video a few
+ * seconds become a visible distance (78 s of 58 min is 2% of the rail whole,
+ * about 77% zoomed). Fixed when asked for, never live: a scale that moved
+ * under a dragging finger would be worse than a coarse one.
+ */
+export function zoomWindow(clip: Clip, duration: number): Span {
+  const pad = Math.max(ZOOM_PAD_MIN, clipLength(clip) * ZOOM_PAD_SHARE);
+  // On tenths, so the slider's 0.1 steps land on the tenths the readout shows.
+  const lo = Math.floor((clip.start - pad) * 10 + 1e-9) / 10;
+  const hi = Math.ceil((clip.end + pad) * 10 - 1e-9) / 10;
+  return { lo: Math.max(0, lo), hi: Math.min(duration, hi) };
+}
+
 const SECONDS = /^(\d+([.,]\d*)?|[.,]\d+)$/;
 const WHOLE = /^\d+$/;
 

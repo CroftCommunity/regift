@@ -94,7 +94,9 @@ one-release caveat is in `src/sw-nav.ts`: do NOT "fix" it with `skipWaiting()`.
 
 - **TDD, RED first.** Core behaviour gets a vitest test before code; page wiring gets an e2e.
   Fixtures are the contract: `tests/fixtures/reddit/` (captured manifest, shaped listings),
-  `tests/fixtures/media/` (2-second synthetic tracks made with ffmpeg.wasm itself).
+  `tests/fixtures/media/` (2-second synthetic tracks made with ffmpeg.wasm itself; `long.mp4`,
+  60 s of 32×32 `testsrc` at 2 fps, made with system ffmpeg 6.1, only gives the clip slider a
+  length worth zooming).
 - **Hex only in `tokens.css`**; components use `var()`. Relative paths only. Pages, not
   modals. Mobile-first: tap targets ≥44px, no overflow at 320/360/390 (measured by element
   geometry, not `scrollWidth` alone).

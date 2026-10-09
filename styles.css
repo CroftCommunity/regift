@@ -427,6 +427,18 @@ img.preview {
 .range2 input[type='range']:disabled::-webkit-slider-thumb {
   opacity: 0.55;
 }
+.trim-scale {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+  font-size: var(--t-caption);
+  color: var(--ink-muted);
+}
+.trim-scale .btn {
+  color: var(--ink);
+}
 .trim-times {
   display: grid;
   gap: var(--s-2);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clipFilename, clipLength, formatTime, gifPlan, GIF_PIXEL_FRAME_BUDGET, MIN_CLIP, moveEnd, moveStart, parseTime, setEnd, setStart, wholeClip } from '../../src/core/clip';
+import { clipFilename, clipLength, formatTime, gifPlan, GIF_PIXEL_FRAME_BUDGET, MIN_CLIP, moveEnd, moveStart, parseTime, setEnd, setStart, wholeClip, zoomWindow } from '../../src/core/clip';
 
 describe('the two handles', () => {
   const whole = wholeClip(24);
@@ -72,6 +72,22 @@ describe('a typed start or end', () => {
   it('a non-number leaves the clip as it was', () => {
     expect(setStart(c, Number.NaN, 60)).toEqual(c);
     expect(setEnd(c, Number.NaN, 60)).toEqual(c);
+  });
+});
+
+describe('zoomWindow — the slider narrowed to the clip', () => {
+  it('a 78 s clip in a 58 min video fills most of the rail, with room either side', () => {
+    const w = zoomWindow({ start: 1547.4, end: 1625.5 }, 3527);
+    // 15% of 78.1 s is 11.7 s either side, widened out to the nearest tenth.
+    expect(w).toEqual({ lo: 1535.6, hi: 1637.3 });
+  });
+
+  it('a short clip still gets a few seconds either side', () => {
+    expect(zoomWindow({ start: 10, end: 11 }, 60)).toEqual({ lo: 8, hi: 13 });
+  });
+
+  it('never runs past either end of the video', () => {
+    expect(zoomWindow({ start: 0.5, end: 3 }, 4)).toEqual({ lo: 0, hi: 4 });
   });
 });
 
