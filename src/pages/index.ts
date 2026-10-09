@@ -12,7 +12,7 @@ import { sharedUrl, sharedPostJson } from '../core/share-in';
 import { creditLine, embeddedCredit } from '../core/credit';
 import { tagImage } from '../core/tag';
 import { mp4Info } from '../core/mp4-info';
-import { clipFilename, clipLength, formatTime, gifPlan, moveEnd, moveStart, wholeClip, type Clip } from '../core/clip';
+import { clipFilename, clipLength, formatTime, gifPlan, moveEnd, moveStart, parseTime, setEnd, setStart, wholeClip, zoomWindow, type Clip, type Span } from '../core/clip';
 import { readAny, regiftVideo, fromReddit, NeedsBrowserError, type Stage } from '../core/pipeline';
 import { isInstagramEmbedUrl } from '../core/readers/instagram';
 import { CourierBlockedError } from '../core/ports';
@@ -91,6 +91,9 @@ function isInstalled(): boolean {
     return false;
   }
 }
+
+/** Counts trimmers, so each one's label and hint ids are unique on the page. */
+let trimmers = 0;
 
 function content(): HTMLElement {
   const root = el('div');
@@ -288,9 +291,14 @@ function content(): HTMLElement {
    * range inputs share one rail — native inputs, so the keyboard and a screen
    * reader each get a real "Clip start" and "Clip end" slider — and the preview
    * seeks to whichever handle moved, so the person sees the frame they chose.
+   * A thumb is hard to land to the tenth under a finger, so each end also has a
+   * box to type a time in and a "Now" that takes the paused video's time.
+   * "Zoom in" narrows the rail to the clip, so on a long video a few seconds
+   * are a distance a finger can see.
    * The bytes are held for the encode: a GIF or mp4 is made from the file itself.
    */
   function trimmer(file: File, video: HTMLVideoElement, post: Post | null): HTMLElement {
+    const n = ++trimmers; // ids for label/hint wiring, unique per video on the page
     const box = el('fieldset', 'trim');
     box.setAttribute('data-testid', 'trim');
     box.append(el('legend', undefined, 'Cut a clip'));
@@ -309,6 +317,42 @@ function content(): HTMLElement {
     const from = handle('Clip start', 'trim-start');
     const to = handle('Clip end', 'trim-end');
     rail.append(fill, from, to);
+    // What the rail spans, under it: 0:00.0 … the end, or the zoomed window.
+    const scaleLo = el('span', 'mono');
+    const scaleHi = el('span', 'mono');
+    const zoom = el('button', 'btn btn-secondary', 'Zoom in');
+    zoom.type = 'button';
+    zoom.setAttribute('data-testid', 'trim-zoom');
+    const scale = el('div', 'trim-scale');
+    scale.setAttribute('data-testid', 'trim-scale');
+    scale.append(scaleLo, zoom, scaleHi);
+    const hint = el('p', 'trim-hint', 'Type a time like 1:23.4 or 83.4, or pause the video and tap Now.');
+    hint.id = `trim-hint-${n}`;
+    hint.setAttribute('data-testid', 'trim-time-hint');
+    // A text box, not type=number: a number keyboard has no ':' for 1:23.4.
+    const timeBox = (label: string, testid: string): { row: HTMLElement; input: HTMLInputElement; now: HTMLButtonElement } => {
+      const input = el('input');
+      input.type = 'text';
+      input.id = `${testid}-time-${n}`;
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+      input.enterKeyHint = 'done';
+      input.setAttribute('data-testid', `${testid}-time`);
+      input.setAttribute('aria-describedby', hint.id);
+      const name = el('label', undefined, label);
+      name.htmlFor = input.id;
+      const now = el('button', 'btn btn-secondary', 'Now');
+      now.type = 'button';
+      now.setAttribute('aria-label', `Set clip ${label.toLowerCase()} to the video's current time`);
+      now.setAttribute('data-testid', `${testid}-now`);
+      const row = el('div', 'trim-time');
+      row.append(name, input, now);
+      return { row, input, now };
+    };
+    const startBox = timeBox('Start', 'trim-start');
+    const endBox = timeBox('End', 'trim-end');
+    const times = el('div', 'trim-times');
+    times.append(startBox.row, endBox.row, hint);
     const readout = el('p', 'mono trim-readout', 'Reading the video length…');
     readout.setAttribute('data-testid', 'trim-readout');
     const play = button('Play the clip', 'btn btn-secondary', 'trim-play', () => {
@@ -317,28 +361,44 @@ function content(): HTMLElement {
     });
     const asMp4 = button('Clip as MP4', 'btn btn-secondary', 'clip-mp4', () => void make('mp4'));
     const asGif = button('Clip as GIF', 'btn btn-primary', 'clip-gif', () => void make('gif'));
-    const controls = [play, asMp4, asGif];
+    const controls = [zoom, play, asMp4, asGif, startBox.input, startBox.now, endBox.input, endBox.now];
     for (const b of controls) b.disabled = true;
     const actions = el('div', 'actions');
     actions.append(play, asMp4, asGif);
     const out = el('div');
-    box.append(rail, readout, actions, out);
+    box.append(rail, scale, times, readout, actions, out);
 
     let duration = 0;
     let size = { width: 0, height: 0 };
     let clip: Clip = wholeClip(0);
+    let zoomed = false;
+    let view: Span = { lo: 0, hi: 0 };
     const plan = () => gifPlan(size, clipLength(clip));
     const render = (): void => {
+      // A typed or "Now" time outside the zoom refits it; a handle cannot leave it.
+      if (zoomed && (clip.start < view.lo || clip.end > view.hi)) view = zoomWindow(clip, duration);
+      for (const r of [from, to]) {
+        r.min = String(view.lo);
+        r.max = String(view.hi);
+      }
+      scaleLo.textContent = formatTime(view.lo);
+      scaleHi.textContent = formatTime(view.hi);
+      zoom.textContent = zoomed ? 'Zoom out' : 'Zoom in';
       from.value = String(clip.start);
       to.value = String(clip.end);
       from.setAttribute('aria-valuetext', formatTime(clip.start));
       to.setAttribute('aria-valuetext', formatTime(clip.end));
+      startBox.input.value = formatTime(clip.start);
+      endBox.input.value = formatTime(clip.end);
+      startBox.input.removeAttribute('aria-invalid');
+      endBox.input.removeAttribute('aria-invalid');
       // CSSOM, not a style attribute: CSP style-src 'self' allows this.
-      rail.style.setProperty('--from', String(clip.start / duration));
-      rail.style.setProperty('--to', String(clip.end / duration));
+      const at = (t: number): string => String(Math.min(1, Math.max(0, (t - view.lo) / (view.hi - view.lo))));
+      rail.style.setProperty('--from', at(clip.start));
+      rail.style.setProperty('--to', at(clip.end));
       // Handles can meet; the one nearer its own end of the rail goes on top so
       // the other is never buried under it.
-      rail.toggleAttribute('data-start-on-top', clip.start > duration / 2);
+      rail.toggleAttribute('data-start-on-top', clip.start > (view.lo + view.hi) / 2);
       const g = plan();
       readout.textContent = `${formatTime(clip.start)} → ${formatTime(clip.end)} · ${clipLength(clip).toFixed(1)} s\nGIF ${g.width}×${g.height}, ${g.fps} fps`;
     };
@@ -346,10 +406,8 @@ function content(): HTMLElement {
       duration = info.duration;
       size = { width: info.width, height: info.height };
       clip = wholeClip(duration);
-      for (const r of [from, to]) {
-        r.max = String(duration);
-        r.disabled = false;
-      }
+      view = { lo: 0, hi: duration };
+      for (const r of [from, to]) r.disabled = false;
       for (const b of controls) b.disabled = false;
       render();
     };
@@ -380,6 +438,40 @@ function content(): HTMLElement {
       clip = moveEnd(clip, Number(to.value), duration);
       video.pause();
       video.currentTime = clip.end;
+      render();
+    });
+    // The window is fixed when zoom is tapped, never while a handle is dragged:
+    // a scale that moved under the finger would be worse than a coarse one.
+    zoom.addEventListener('click', () => {
+      zoomed = !zoomed;
+      view = zoomed ? zoomWindow(clip, duration) : { lo: 0, hi: duration };
+      render();
+    });
+    // A box commits on Enter or on leaving it, not per keystroke, so "1:2" on the
+    // way to "1:23" moves nothing. Not a time: flagged, and the clip stays put.
+    const typed = (input: HTMLInputElement, set: (t: number) => Clip, seekTo: () => number): void => {
+      input.addEventListener('change', () => {
+        const t = parseTime(input.value);
+        if (t === null) {
+          input.setAttribute('aria-invalid', 'true');
+          return;
+        }
+        clip = set(t);
+        video.pause();
+        video.currentTime = seekTo();
+        render();
+      });
+    };
+    typed(startBox.input, (t) => setStart(clip, t, duration), () => clip.start);
+    typed(endBox.input, (t) => setEnd(clip, t, duration), () => clip.end);
+    // "Now" takes the frame on screen: scrub or play the video itself, pause, tap.
+    startBox.now.addEventListener('click', () => {
+      clip = setStart(clip, video.currentTime, duration);
+      render();
+    });
+    endBox.now.addEventListener('click', () => {
+      clip = setEnd(clip, video.currentTime, duration);
+      video.pause();
       render();
     });
     // Playing stops at the end handle, so "Play the clip" plays only the clip.
