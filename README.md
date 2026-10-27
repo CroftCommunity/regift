@@ -13,7 +13,7 @@ Internet install a home-screen shortcut, which never appears in the share sheet 
 2026-08-30 — the first install was from Brave and regift was not offered). Once installed
 from Chrome, you can share to it from any app, Brave included.
 
-## What works today (2026-09-16)
+## What works today (2026-10-09)
 
 ```
 Reddit post ──share──► regift ──► read post ──► fetch tracks ──► mux ──► share sheet
@@ -40,7 +40,11 @@ Reddit post ──share──► regift ──► read post ──► fetch trac
   browser's* menu instead.
 - **Everything after that is automatic** and runs in the page: the DASH manifest and the
   best video + audio tracks come from `v.redd.it` (which is CORS-open, unsigned), and
-  ffmpeg.wasm stream-copies them into one MP4 (no re-encode).
+  ffmpeg.wasm stream-copies them into one MP4 (no re-encode for the mux).
+- **Cut a clip.** Any video regift hands you can be cut: two handles on a slider, each set
+  by dragging, by typing a time, or with **Now** from the playing video; **Zoom in** widens a
+  short span on a long video. Out as a GIF or an MP4 — re-encoded on the device, so the
+  clip starts on the frame you chose rather than the nearest keyframe.
 - **Reddit pictures: share the picture, not the link.** Measured 2026-09-16 (header probe
   with the deploy origin, and on-device before that): `i.redd.it`, `preview.redd.it` and
   `external-preview.redd.it` send **no `access-control-allow-origin` header at all**
@@ -82,8 +86,9 @@ on desktop/Firefox; a native shell on Android), is recorded in
 ## Built for a native release without a rewrite
 
 The core (`src/core/`) is platform-free and never touches `fetch`, `window` or the DOM. It
-depends on three ports (`src/core/ports.ts`): a **Courier** that reads URLs and *says
-which origins it can read*, a **Muxer**, and a **ShareOut**. The web adapters live in
+depends on four ports (`src/core/ports.ts`): a **Courier** that reads URLs and *says
+which origins it can read*, a **Muxer**, a **Clipper** (cuts a span, re-encoded), and a
+**ShareOut**. The web adapters live in
 `src/adapters/web/`. A Capacitor Android shell is the same `dist/` plus native adapters —
 a courier that can read reddit.com (removing the assisted step), the SEND intent-filter,
 and `@capacitor/share` — not a second app.

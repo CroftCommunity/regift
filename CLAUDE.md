@@ -29,7 +29,7 @@ serving an older `dist/` fails SRI silently. `lsof -ti :4183 -ti :4184 | xargs k
 `src/core/` is platform-free: no `fetch`, no `window`, no DOM, unit-tested in node. It talks
 to the shell only through `src/core/ports.ts` — **Courier** (`canRead(url)` is the load-
 bearing method: a page cannot read reddit.com, a native HTTP stack can), **Muxer**,
-**ShareOut**. Web adapters in `src/adapters/web/`. **Do not import an adapter from core,
+**Clipper**, **ShareOut** — four ports. Web adapters in `src/adapters/web/`. **Do not import an adapter from core,
 and do not let a DOM type into core** — that is the whole preparation for the Capacitor
 shell (same `dist/`, native adapters, nothing else).
 
@@ -113,6 +113,6 @@ one-release caveat is in `src/sw-nav.ts`: do NOT "fix" it with `skipWaiting()`.
 
 ## Known gaps
 
-`TODO.md` — known, deferred work with the why. The two that matter most: the assisted step
-(a courier ladder removes it: extension, then native), and no on-device measurement yet of a
-~100 MB mux in Android WebView.
+`TODO.md` — known, deferred work with the why. The one that matters most: the assisted step
+(a courier ladder removes it: extension, then native). The large-mux question is answered —
+measured 2026-09-14 on the Samsung, a 218 MB input muxed without failing (`TODO.md` §2).
