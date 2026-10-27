@@ -36,7 +36,7 @@ entry here before it lands.
 
 ## 2026-09
 
-- 2026-09-23 **Instagram reels, recognised and read — by the courier that can:** share an
+- 2026-09-28 **Instagram reels, recognised and read — by the courier that can:** share an
   Instagram reel or post link (`/reel/`, `/reels/`, `/p/`, `/tv/`, with or without the
   poster's name) and regift knows it, reads the post from its embed page into the one mp4
   the CDN serves, and credits `@poster on Instagram`. What a page cannot do is that read:

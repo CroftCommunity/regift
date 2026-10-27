@@ -103,10 +103,13 @@ extractors are the living reference; definitions should be data, not code.
 
 ## 6. Shrink a local mp4 for a destination's size limit
 
-**Decided 2026-09-14 from measurement, not yet planned.** A file shared INTO regift (a
-`POST` / `multipart/form-data` share target with a `files` entry, the service worker
-stashing the file and redirecting — Android Chrome only, like today's link share) is
-brought under a size budget the person names, two ways: **parts** (cut at keyframes by
+**Decided 2026-09-14 from measurement; the size budget is not yet planned.** Two pieces it
+needed have landed: the file share target (a `POST` / `multipart/form-data` share target
+with a `files` entry, the service worker stashing the file and redirecting — Android Chrome
+only; #13 `8e1c754`, 2026-09-16), and an on-device H.264 re-encode in the core's `Clipper`
+port (#15 `c9e8688`, 2026-10-02: libx264 `veryfast`, with `src/core/mp4-info.ts` reading
+duration and size from the container). What remains: a file shared in is brought under a
+size budget the person names, two ways: **parts** (cut at keyframes by
 stream copy, each under budget, `1/N … N/N`) or **one file** (re-encode to H.264 at the
 bitrate that fits, resolution capped at 360p/720p). The core reads duration, dimensions,
 codec and bitrate from the container (`mvhd`/`tkhd`/`stsd`, platform-free) and states the
